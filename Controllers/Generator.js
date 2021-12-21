@@ -22,6 +22,7 @@ module.exports = (req, res) => {
           reduction: req.session.reduction,
           totalGeneral: Number(req.session.total) - Number(req.session.reduction),
           payed: Number(req.session.total) - Number(req.session.reduction),
+          imgPath: path.join(__dirname, '../Assets/', "logo.png"),
         }
       }
 	const nameOfTemplate = req.session.idUser == 0 ? "billTEF.ejs" : "bill.ejs";       
