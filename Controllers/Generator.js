@@ -31,6 +31,7 @@ module.exports = (req, res) => {
         } else {
           let options = {
             width: "7.5cm",
+            localUrlAccess: true,
           };
         
           const nameOfFile = `Facture_${fs.readFileSync(path.join(__dirname, '../Assets/', 'number.txt'), 'utf-8')}_${req.session.nameOfClient}.pdf`;
