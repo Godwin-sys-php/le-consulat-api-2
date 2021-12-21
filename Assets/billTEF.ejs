@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      h1 {
+        text-align: center;
+      }
+      h3 {
+        text-align: center;
+      }
+      hr {
+        background-color: black;
+        border-color: black;
+      }
+      .content {
+        font-size: 25px;
+        margin-right: 75px;
+        margin-left: 75px;
+      }
+      .item {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th {
+        border: solid 1px black;
+      }
+      .item-element {
+        border: solid 1px black;
+        text-align: right;
+      }
+      .item-element-name {
+        border: solid 1px black;
+        text-align: left;
+      }
+      .bref {
+        text-align: right;
+        border-collapse: collapse;
+        width: 40%;
+        border-bottom: dashed 1px black;
+      }
+      .total {
+        width: 100%;
+        float: none;
+      }
+      .align-right {
+        text-align: right;
+      }
+      .address {
+        text-align: center;
+        font-size: 22px;
+      }
+      .info {
+        font-size: 20.5px;
+      }
+    </style>
+  </head>
+  <body>
+<div style="text-align: right;margin-right: 50px;margin-top: 40px;">Powered by Tech'Eat Fast</div>
+    <h1>LE CONSULAT</h1>
+    <h3>FACTURE N°: <%= data.number %></h3>
+    <div class="content">
+      <div class="info">
+        DATE <%= data.date %>  <br />
+        HEURE <%= data.hours %> <br />
+        CLIENT <%= data.client %> <br />
+        VOUS ÊTES SERVI PAR <%= data.nameOfServer %> <br /><br />
+      </div>
+      <table class="item">
+        <tr>
+          <th>ARTICLE</th>
+          <th>QTÉ</th>
+          <th>PU</th>
+          <th>PT</th>
+        </tr>
+        <% data.item.forEach(item => { %>
+          <tr>
+            <td class="item-element-name"><%= item.nameOfProduct %></td>
+            <td class="item-element"><%= item.quantity %></td>
+            <td class="item-element"><%= item.price %>$</td>
+            <td class="item-element"><%= item.price * item.quantity %>$</td>
+          </tr>
+        <% }); %>
+      </table>
+
+      <br />
+      <table class="bref" align="right">
+        <tr>
+          <td>TOTAL</td>
+          <td><%= data.total %>$</td>
+        </tr>
+        <tr>
+          <td>REMISE</td>
+          <td><%= data.reduction %>$</td>
+        </tr>
+      </table>
+      <br /><br /><br />
+      <table class="total">
+        <tr>
+          <td>TOTAL GÉNÉRAL</td>
+          <td class="align-right"><%= data.totalGeneral %>$</td>
+        </tr>
+        <tr>
+          <td>PAYÉ</td>
+          <td class="align-right"><%= data.payed %>$</td>
+        </tr>
+        <tr>
+          <td>RESTE À PAYER</td>
+          <td class="align-right"><%= data.totalGeneral - data.payed %>$</td>
+        </tr>
+      </table>
+      <br />
+      <hr />
+      <div>
+        <span style="float: left;">LE CONSULAT</span>
+        <span style="float: right;">TEL +243820013542</span>
+      </div>
+      <br /><br /><br /><br /><br />
+      <div class="address">
+        326. AV HAUT-COMMANDEMENT REF, CROISEMENT AVEC L'AVENUE LES PALMIERS À CÔTÉ DE L'ORDRE NATIONAL DES AVOCATS GOMBE/KINSHASA/RDC
+      </div>
+      <br /><br />
+      <div style="text-align: center; font-size: 19.5px;">MERCI POUR VOTRE ACHAT</div>
+    </div>
+  </body>
+</html>

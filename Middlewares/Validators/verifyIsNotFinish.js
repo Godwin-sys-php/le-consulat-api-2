@@ -1,0 +1,12 @@
+const Sessions = require("../../Models/Sessions");
+
+module.exports = (req, res, next) => {
+  Sessions.find({ idSession: req.params.idSession })
+    .then(session => {
+      session[0].wasOver ? res.status(400).json({ sessionIsAlreadyFinish: true }) : next();
+    })
+    .catch((error) => {
+      console.log(error);
+      res.status(500).json({ error: true, errorMessage: error });
+    });
+};
