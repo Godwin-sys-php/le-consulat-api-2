@@ -9,12 +9,12 @@ module.exports = (req, res) => {
   const number = fs.readFileSync(path.join(__dirname, '../Assets/', 'number.txt'), 'utf-8');
   Sessions.findItem({ idSession: req.session.idSession })
     .then(items => {
-      const now = moment.unix(req.session.timestamp);
+      const now = moment.unix(req.session.timestamp + 21600);
       const data = {
         data: {
           number: number,
           date: now.format('DD/MM/yyyy'),
-          hours: now.format('HH:mm'),
+          hours: now.format('H:mm'),
           client: req.session.nameOfClient,
           nameOfServer: req.session.nameOfServer,
           item: items,
