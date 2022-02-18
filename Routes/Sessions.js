@@ -15,6 +15,7 @@ const existItem = require('../Middlewares/Exists/existItem');
 
 const sessionCtrl = require('../Controllers/Sessions');
 const generator = require('../Controllers/Generator');
+const authSpecial = require('../Middlewares/Auth/authSpecial');
 
 router.post('/', limits(8000, 15), auth, validatorSession, sessionCtrl.startNewSession); // Commence une nouvelle session
 
@@ -39,5 +40,6 @@ router.get('/get/notPaid', limits(8000, 15), auth, sessionCtrl.getNotPaied); // 
 router.get('/get/finished', limits(8000, 15), auth, sessionCtrl.getFinished); // Récupère les sessions finit
 
 router.delete('/:idSession/items/:idItem', limits(8000, 15), existSession, existItem, verifyIsNotFinish, auth, sessionCtrl.deleteOneItem); // Supprime une élément d'une session
+router.delete('/:idSession/', limits(8000, 15), existSession, authSpecial, sessionCtrl.deleteOneSession); // Supprime une session
 
 module.exports = router;
