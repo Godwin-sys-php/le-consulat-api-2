@@ -1,5 +1,6 @@
 const Clients = require('../Models/Clients');
 const moment = require('moment');
+const MoneyTransactions = require('../Models/MoneyTransactions');
 
 exports.addOneClient = (req, res) => {
   let toInsert;

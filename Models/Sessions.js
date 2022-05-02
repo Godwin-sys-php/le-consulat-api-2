@@ -104,7 +104,7 @@ class Sessions extends Base {
   findRecipeOfDay(timestamp) {
     return new Promise((resolve, reject) => {
       this.bdd.query(
-        'SELECT SUM(total-reduction) AS recipe FROM sessions WHERE timestamp >= ? AND timestamp < ? AND wasOver=1 AND beenPaid=1', [Number(timestamp), Number(timestamp) + 86400],
+        'SELECT SUM(amountPaid) AS recipe FROM sessions WHERE timestamp >= ? AND timestamp < ? AND wasOver=1 AND beenPaid=1 AND idMethod != 4', [Number(timestamp), Number(timestamp) + 86400],
         (error, results, fields) => {
           if (error) reject(error);
           resolve(results);
@@ -116,7 +116,7 @@ class Sessions extends Base {
   findRecipeOfPeriod(begin, end) {
     return new Promise((resolve, reject) => {
       this.bdd.query(
-        'SELECT SUM(total-reduction) AS recipe FROM sessions WHERE timestamp >= ? AND timestamp < ? AND wasOver=1 AND beenPaid=1', [Number(begin), Number(end) + 86400],
+        'SELECT SUM(amountPaid) AS recipe FROM sessions WHERE timestamp >= ? AND timestamp < ? AND wasOver=1 AND beenPaid=1 AND idMethod !== 4', [Number(begin), Number(end) + 86400],
         (error, results, fields) => {
           if (error) reject(error);
           resolve(results);
@@ -191,6 +191,18 @@ class Sessions extends Base {
     return new Promise((resolve, reject) => {
       this.bdd.query(
         'SELECT * FROM sessions',
+        (error, results, fields) => {
+          if (error) reject(error);
+          resolve(results);
+        }
+      );
+    });
+  }
+
+  findMethods() {
+    return new Promise((resolve, reject) => {
+      this.bdd.query(
+        'SELECT * FROM methods',
         (error, results, fields) => {
           if (error) reject(error);
           resolve(results);

@@ -152,7 +152,7 @@ class MoneyTransactions extends Base {
   findExpenses(timestamp) {
     return new Promise((resolve, reject) => {
       this.bdd.query(
-        'SELECT SUM(outlet) AS expenses FROM moneyTransactions WHERE timestamp >= ? AND timestamp < ?', [Number(timestamp), Number(timestamp) + 86400],
+        'SELECT SUM(outlet) AS expenses FROM moneyTransactions WHERE timestamp >= ? AND timestamp < ? AND description != "Changement de paramètre de paiement"', [Number(timestamp), Number(timestamp) + 86400],
         (error, results, fields) => {
           if (error) reject(error);
           resolve(results);

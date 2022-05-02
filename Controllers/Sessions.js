@@ -336,40 +336,152 @@ exports.addAccompanimentToSessionItem = (req, res) => {
   }
 };
 
-exports.finishAndPay = (req, res, next) => {
+exports.editMoneyOfSession = async (req, res) => {
   const now = moment();
-  Sessions.updateOne({ wasOver: 1, beenPaid: 1 }, req.params.idSession)
-    .then(async () => {
-      await MoneyTransactions.findLast()
-        .then(async (lastTransaction) => {
-          await MoneyTransactions.insertOne({
-            idCategory: 1,
-            idUser: req.user.idUser,
-            enter: req.session.total - req.session.reduction,
-            outlet: 0,
-            amountAfter:
-              lastTransaction[0].amountAfter +
-              (req.session.total - req.session.reduction),
-            timestamp: now.unix(),
-            description: `Paiement facture`,
-          })
-            .then(() => {
-              next();
-            })
-            .catch((error) => {
-              console.log(error);
-              res.status(500).json({ error: true, errorMessage: error });
-            });
-        })
-        .catch((error) => {
-          console.log(error);
-          res.status(500).json({ error: true, errorMessage: error });
-        });
-    })
-    .catch((error) => {
-      console.log(error);
-      res.status(500).json({ error: true, errorMessage: error });
+  const lastTransaction = await MoneyTransactions.findLast();
+  if (
+    (req.body.paymentMethod == 1 ||
+      req.body.paymentMethod == 2 ||
+      req.body.paymentMethod == 3 ||
+      req.body.paymentMethod == 4 ||
+      req.body.paymentMethod == 5 ||
+      req.body.paymentMethod == 6) &&
+    _.isNumber(req.body.amountPaid) &&
+    req.body.amountPaid <= req.session.total
+  ) {
+    await Sessions.updateOne(
+      { idMethod: req.body.paymentMethod, amountPaid: req.body.amountPaid },
+      req.params.idSession
+    );
+    if (req.session.idMethod !== req.body.paymentMethod) {
+      const last = await MoneyTransactions.customQuery(
+        "SELECT * FROM methods WHERE idMethod = ?",
+        [req.session.idMethod]
+      );
+      const last2 = await MoneyTransactions.customQuery(
+        "SELECT * FROM methods WHERE idMethod = ?",
+        [req.body.paymentMethod]
+      );
+      await MoneyTransactions.customQuery(
+        "UPDATE methods SET amount = ? WHERE idMethod = ?",
+        [last[0].amount - req.session.amountPaid, req.session.idMethod]
+      );
+      await MoneyTransactions.customQuery(
+        "UPDATE methods SET amount = ? WHERE idMethod = ?",
+        [last2[0].amount + req.session.amountPaid, req.body.paymentMethod]
+      );
+    } else {
+      const last = await MoneyTransactions.customQuery(
+        "SELECT * FROM methods WHERE idMethod = ?",
+        [req.body.paymentMethod]
+      );
+      await MoneyTransactions.customQuery(
+        "UPDATE methods SET amount = ? WHERE idMethod = ?",
+        [
+          last[0].amount - req.session.amountPaid + req.body.amountPaid,
+          req.session.idMethod,
+        ]
+      );
+    }
+    const result = await MoneyTransactions.insertOne({
+      idCategory: 1,
+      idMethod: req.body.paymentMethod,
+      idUser: req.user.idUser,
+      enter: req.body.amountPaid,
+      outlet: req.session.amountPaid,
+      amountAfter:
+        lastTransaction[0].amountAfter -
+        req.session.amountPaid +
+        req.body.amountPaid,
+      timestamp: now.unix(),
+      description: `Changement de paramètre de paiement`,
     });
+    if (
+      req.body.amountPaid !== req.session.amountPaid &&
+      req.body.amountPaid > req.session.amountPaid
+    ) {
+      const toInsert = {
+        idUser: req.user.idUser,
+        idClient: req.session.idClient,
+        idSession: req.params.idSession,
+        idTransaction: result.insertId,
+        idMethod: req.body.paymentMethod,
+        nameOfClient: req.session.nameOfClient,
+        amountPaid: req.body.amountPaid - req.session.amountPaid,
+        timestamp: now.unix(),
+      };
+      await MoneyTransactions.customQuery("INSERT INTO payedDebt SET ?", [
+        toInsert,
+      ]);
+    }
+    return res.status(200).json({ update: true });
+  } else {
+    return res.status(400).json({ invalidForm: true });
+  }
+};
+
+exports.finishAndPay = (req, res, next) => {
+  if (
+    (req.body.paymentMethod == 1 ||
+      req.body.paymentMethod == 2 ||
+      req.body.paymentMethod == 3 ||
+      req.body.paymentMethod == 4 ||
+      req.body.paymentMethod == 5 ||
+      req.body.paymentMethod == 6) &&
+    _.isNumber(req.body.amountPaid) &&
+    req.body.amountPaid <= req.session.total
+  ) {
+    const now = moment();
+    Sessions.updateOne(
+      {
+        beenPaid: 1,
+        idMethod: req.body.paymentMethod,
+        wasOver: 1,
+        amountPaid: req.body.amountPaid,
+      },
+      req.params.idSession
+    )
+      .then(async () => {
+        await MoneyTransactions.findLast()
+          .then(async (lastTransaction) => {
+            await MoneyTransactions.insertOne({
+              idCategory: 1,
+              idMethod: req.body.paymentMethod,
+              idUser: req.user.idUser,
+              enter: req.body.amountPaid,
+              outlet: 0,
+              amountAfter: lastTransaction[0].amountAfter + req.body.amountPaid,
+              timestamp: now.unix(),
+              description: `Paiement facture`,
+            })
+              .then(async () => {
+                const last = await MoneyTransactions.customQuery(
+                  "SELECT * FROM methods WHERE idMethod = ?",
+                  [req.body.paymentMethod]
+                );
+                await MoneyTransactions.customQuery(
+                  "UPDATE methods SET amount = ? WHERE idMethod = ?",
+                  [last[0].amount + req.body.amountPaid, req.body.paymentMethod]
+                );
+                next();
+              })
+              .catch((error) => {
+                console.log(error);
+                res.status(500).json({ error: true, errorMessage: error });
+              });
+          })
+          .catch((error) => {
+            console.log(error);
+            res.status(500).json({ error: true, errorMessage: error });
+          });
+      })
+      .catch((error) => {
+        console.log(error);
+        res.status(500).json({ error: true, errorMessage: error });
+      });
+  } else {
+    return res.status(400).json({ invalidForm: true });
+  }
 };
 
 exports.finish = (req, res, next) => {
@@ -384,38 +496,66 @@ exports.finish = (req, res, next) => {
 };
 
 exports.pay = (req, res) => {
-  Sessions.updateOne({ beenPaid: 1 }, req.params.idSession)
-    .then(async () => {
-      await MoneyTransactions.findLast()
-        .then(async (lastTransaction) => {
-          await MoneyTransactions.insertOne({
-            idCategory: 1,
-            idUser: req.user.idUser,
-            enter: req.session.total - req.session.reduction,
-            outlet: 0,
-            amountAfter:
-              lastTransaction[0].amountAfter +
-              (req.session.total - req.session.reduction),
-            timestamp: now.unix(),
-            description: `Paiement facture`,
-          })
-            .then(() => {
-              res.status(200).json({ update: true });
+  const now = moment();
+  if (
+    (req.body.paymentMethod == 1 ||
+      req.body.paymentMethod == 2 ||
+      req.body.paymentMethod == 3 ||
+      req.body.paymentMethod == 4 ||
+      req.body.paymentMethod == 5 ||
+      req.body.paymentMethod == 6) &&
+    _.isNumber(req.body.amountPaid) &&
+    req.body.amountPaid <= req.session.total
+  ) {
+    Sessions.updateOne(
+      {
+        beenPaid: 1,
+        idMethod: req.body.paymentMethod,
+        amountPaid: req.body.amountPaid,
+      },
+      req.params.idSession
+    )
+      .then(async () => {
+        await MoneyTransactions.findLast()
+          .then(async (lastTransaction) => {
+            await MoneyTransactions.insertOne({
+              idCategory: 1,
+              idMethod: req.body.paymentMethod,
+              idUser: req.user.idUser,
+              enter: req.body.amountPaid,
+              outlet: 0,
+              amountAfter: lastTransaction[0].amountAfter + req.body.amountPaid,
+              timestamp: now.unix(),
+              description: `Paiement facture`,
             })
-            .catch((error) => {
-              console.log(error);
-              res.status(500).json({ error: true, errorMessage: error });
-            });
-        })
-        .catch((error) => {
-          console.log(error);
-          res.status(500).json({ error: true, errorMessage: error });
-        });
-    })
-    .catch((error) => {
-      console.log(error);
-      res.status(500).json({ error: true, errorMessage: error });
-    });
+              .then(async () => {
+                const last = await MoneyTransactions.customQuery(
+                  "SELECT * FROM methods WHERE idMethod = ?",
+                  [req.body.paymentMethod]
+                );
+                await MoneyTransactions.customQuery(
+                  "UPDATE methods SET amount = ? WHERE idMethod = ?",
+                  [last[0].amount + req.body.amountPaid, req.body.paymentMethod]
+                );
+                res.status(200).json({ update: true });
+              })
+              .catch((error) => {
+                console.log(error);
+                res.status(500).json({ error: true, errorMessage: error });
+              });
+          })
+          .catch((error) => {
+            console.log(error);
+            res.status(500).json({ error: true, errorMessage: error });
+          });
+      })
+      .catch((error) => {
+        console.log(error);
+        res.status(500).json({ error: true, errorMessage: error });
+      });
+  } else {
+    return res.status(400).json({ invalidForm: true });
+  }
 };
 
 exports.addReduction = (req, res) => {
@@ -436,6 +576,11 @@ exports.reductionToZero = (req, res) => {
     .catch((error) => {
       res.status(500).json({ error: true, errorMessage: error });
     });
+};
+
+exports.getMethods = async (req, res) => {
+  const methods = await Sessions.findMethods();
+  return res.status(200).json({ find: true, result: methods });
 };
 
 exports.getAllSession = (req, res) => {
@@ -469,13 +614,21 @@ exports.getItemOfSession = (req, res) => {
 };
 
 exports.getNotFinished = (req, res) => {
-  Sessions.find({ wasOver: 0 })
+  Sessions.find({ beenPaid: 0 })
     .then((sessions) => {
       res.status(200).json({ find: true, result: sessions });
     })
     .catch((error) => {
       res.status(500).json({ error: true, errorMessage: error });
     });
+};
+
+exports.getDebt = async (req, res) => {
+  const debt = await MoneyTransactions.customQuery(
+    "SELECT * FROM sessions WHERE idMethod = 4 OR (amountPaid < total - reduction)"
+  );
+
+  return res.status(200).json({ find: true, result: debt });
 };
 
 exports.getNotPaied = (req, res) => {
@@ -554,7 +707,10 @@ exports.deleteOneSession = async (req, res) => {
           req.item.idProduct
         );
         await Sessions.updateOne(
-          { total: req.session.total - items[index].quantity * items[index].price },
+          {
+            total:
+              req.session.total - items[index].quantity * items[index].price,
+          },
           req.params.idSession
         );
         await Sessions.deleteOneItem(req.params.idItem);
@@ -577,7 +733,10 @@ exports.deleteOneSession = async (req, res) => {
           items[index].idProduct
         );
         await Sessions.updateOne(
-          { total: req.session.total - items[index].quantity * items[index].price },
+          {
+            total:
+              req.session.total - items[index].quantity * items[index].price,
+          },
           req.params.idSession
         );
         await Sessions.deleteOneItem(items[index].idSessionsItem);
@@ -596,8 +755,8 @@ exports.deleteOneSession = async (req, res) => {
   }
 
   await Sessions.deleteOne(req.params.idSession);
-  
-  return res.status(200).json({ delete: true, })
+
+  return res.status(200).json({ delete: true });
 };
 
 exports.deleteOneItem = async (req, res) => {
@@ -690,17 +849,47 @@ exports.getReport = async (req, res) => {
     const expensesTransactions =
       await MoneyTransactions.findExpensesTransaction(req.params.timestamp);
     const allRecipe = await MoneyTransactions.findRecipe(req.params.timestamp);
+    const debtPM = await MoneyTransactions.customQuery(
+      "SELECT SUM(amountPaid) as debt FROM sessions WHERE idMethod = 4 AND timestamp >= ? AND timestamp < ?",
+      [req.params.timestamp, req.params.timestamp + 86400]
+    );
+    const debt = await MoneyTransactions.customQuery(
+      "SELECT SUM((total-reduction) - amountPaid) as debt FROM sessions WHERE (amountPaid < total - reduction) AND timestamp >= ? AND timestamp < ? AND idMethod != 4",
+      [req.params.timestamp, req.params.timestamp + 86400]
+    );
+    const sumPayedDebt = await MoneyTransactions.customQuery(
+      "SELECT SUM(amountPaid) as payedDebt FROM payedDebt WHERE timestamp >= ? AND timestamp < ?",
+      [req.params.timestamp, req.params.timestamp + 86400]
+    );
+    const cash = await MoneyTransactions.customQuery(
+      "SELECT SUM(amountPaid) as money FROM sessions WHERE timestamp >= ? AND timestamp < ? AND idMethod = 1",
+      [req.params.timestamp, req.params.timestamp + 86400]
+    );
+    const mpesa = await MoneyTransactions.customQuery(
+      "SELECT SUM(amountPaid) as money FROM sessions WHERE timestamp >= ? AND timestamp < ? AND idMethod = 2",
+      [req.params.timestamp, req.params.timestamp + 86400]
+    );
+    const cb = await MoneyTransactions.customQuery(
+      "SELECT SUM(amountPaid) as money FROM sessions WHERE timestamp >= ? AND timestamp < ? AND idMethod = 3",
+      [req.params.timestamp, req.params.timestamp + 86400]
+    );
     const server = await Sessions.findServerOfADay(req.params.timestamp);
 
+    console.log(cash[0].money);
     res.status(200).json({
       find: true,
-      recipe: recipe[0].recipe,
+      recipe: recipe[0].recipe + sumPayedDebt[0].payedDebt,
+      cash: cash[0].money,
+      mpesa: mpesa[0].money,
+      cb: cb[0].money,
       sessions: sessions,
       productsSell: products,
       expenses: expenses[0].expenses,
       allRecipe: allRecipe[0].recipe,
       expensesTransactions: expensesTransactions,
       server: server,
+      debt: debt[0].debt + debtPM[0].debt,
+      sumPayedDebt: sumPayedDebt[0].payedDebt,
     });
   } catch (error) {
     res.status(500).json({ error: true, errorMessage: error });

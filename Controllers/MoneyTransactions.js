@@ -6,6 +6,7 @@ exports.addEnter = (req, res) => {
   const toInsert = {
     idUser: req.user.idUser,
     idCategory: req.body.idCategory,
+    idMethod: req.body.paymentMethod,
     enter: req.body.amount,
     outlet: 0,
     description: req.body.description,
@@ -17,7 +18,9 @@ exports.addEnter = (req, res) => {
       if (categories[0].type === 'enter') {
         MoneyTransactions.findLast()
           .then((transaction) => MoneyTransactions.insertOne({ ...toInsert, amountAfter: Number(transaction[0].amountAfter) + Number(req.body.amount) }))
-          .then(() => {
+          .then(async () => {
+            const last = await MoneyTransactions.customQuery("SELECT * FROM methods WHERE idMethod = ?", [req.body.paymentMethod]);
+            await MoneyTransactions.customQuery("UPDATE methods SET amount = ? WHERE idMethod = ?", [last[0].amount + req.body.amount, req.body.paymentMethod]);
             res.status(200).json({ create: true });
           })
           .catch((err) => {
@@ -37,6 +40,7 @@ exports.addOutlet = (req, res) => {
   const toInsert = {
     idUser: req.user.idUser,
     idCategory: req.body.idCategory,
+    idMethod: req.body.paymentMethod,
     enter: 0,
     outlet: req.body.amount,
     description: req.body.description,
@@ -51,10 +55,11 @@ exports.addOutlet = (req, res) => {
             if ((Number(transaction[0].amountAfter) - Number(req.body.amount)) < 0) {
               res.status(200).json({ negativeMoney: true });
             } else {
-              return MoneyTransactions.insertOne({ ...toInsert, amountAfter: Number(transaction[0].amountAfter) - Number(req.body.amount) }); 
+              MoneyTransactions.insertOne({ ...toInsert, amountAfter: Number(transaction[0].amountAfter) - Number(req.body.amount) }); 
             }
           })
-          .then(() => {
+          .then(async () => {
+            await MoneyTransactions.customQuery("UPDATE methods SET amount = ? WHERE idMethod = ?", [last[0].amount + req.body.amount, req.body.paymentMethod]);
             res.status(200).json({ create: true });
           })
           .catch((err) => {

@@ -1,8 +1,8 @@
 const Transactions = require("../Models/Transactions");
-const moment = require('moment');
+const moment = require("moment");
 const Products = require("../Models/Products");
 const MoneyTransactions = require("../Models/MoneyTransactions");
-const _ = require('lodash');
+const _ = require("lodash");
 
 exports.addEnter = async (req, res) => {
   if (_.isNumber(req.body.buyPrice) && req.body.buyPrice > 0) {
@@ -36,18 +36,34 @@ exports.addEnter = async (req, res) => {
         const lastTransaction = await MoneyTransactions.findLast();
         MoneyTransactions.insertOne({
           idCategory: idCategory,
+          idMethod: 1,
           enter: 0,
           outlet: Number(req.body.buyPrice) * Number(req.body.quantity),
-          amountAfter: Number(lastTransaction[0].amountAfter) - (Number(req.body.buyPrice) * 
-Number(req.body.quantity)),
+          amountAfter:
+            Number(lastTransaction[0].amountAfter) -
+            Number(req.body.buyPrice) * Number(req.body.quantity),
           timestamp: now.unix(),
           description: `Approvisionnement produit ${req.product.name}`,
         })
           .then(async () => {
-            await Products.updateOne({ inStock: toInsert.stockAfter }, toInsert.idProduct)
-              .then(() => {
-                res.status(201).json({ create: true });
-              })
+            await Products.updateOne(
+              { inStock: toInsert.stockAfter },
+              toInsert.idProduct
+            ).then(async () => {
+              const last = await MoneyTransactions.customQuery(
+                "SELECT amount FROM methods WHERE idMethod = 1",
+                []
+              );
+              await MoneyTransactions.customQuery(
+                "UPDATE methods SET amount = ? WHERE idMethod = ?",
+                [
+                  last[0].amount +
+                    Number(req.body.buyPrice) * Number(req.body.quantity),
+                  1,
+                ]
+              );
+              res.status(201).json({ create: true });
+            });
           })
           .catch((error) => {
             res.status(500).json({ error: true, errorMessage: error });
@@ -79,10 +95,12 @@ exports.addOutlet = async (req, res) => {
   } else {
     await Transactions.insertOne(toInsert)
       .then(async () => {
-        await Products.updateOne({ inStock: toInsert.stockAfter }, toInsert.idProduct)
+        await Products.updateOne(
+          { inStock: toInsert.stockAfter },
+          toInsert.idProduct
+        )
           .then(() => {
             res.status(201).json({ create: true });
-
           })
           .catch((error) => {
             res.status(500).json({ error: true, errorMessage: error });
@@ -105,17 +123,30 @@ exports.getAllTransaction = (req, res) => {
 };
 
 exports.getOfOneDay = async (req, res) => {
-  await Transactions.findOfProductFromOneDay(req.params.idProduct, req.params.timestampBegin)
-    .then(async transactions => {
-      await Transactions.findBeginOfProductFromOneDay(req.params.idProduct, req.params.timestampBegin)
-        .then(async begin => {
-          await Transactions.findEndOfProductFromOneDay(req.params.idProduct, req.params.timestampBegin)
-            .then(end => {
-              console.log('Begin', begin[0]);
-              console.log('End', end[0]);
-              console.log('Transaction', transactions[0]);
-              res.status(200).json({ find: true, result: { ...transactions[0], begin: begin[0], end: end[0] } 
-});
+  await Transactions.findOfProductFromOneDay(
+    req.params.idProduct,
+    req.params.timestampBegin
+  )
+    .then(async (transactions) => {
+      await Transactions.findBeginOfProductFromOneDay(
+        req.params.idProduct,
+        req.params.timestampBegin
+      )
+        .then(async (begin) => {
+          await Transactions.findEndOfProductFromOneDay(
+            req.params.idProduct,
+            req.params.timestampBegin
+          )
+            .then((end) => {
+              console.log("Begin", begin[0]);
+              console.log("End", end[0]);
+              console.log("Transaction", transactions[0]);
+              res
+                .status(200)
+                .json({
+                  find: true,
+                  result: { ...transactions[0], begin: begin[0], end: end[0] },
+                });
             })
             .catch((error) => {
               res.status(500).json({ error: true, errorMessage: error });
@@ -128,7 +159,7 @@ exports.getOfOneDay = async (req, res) => {
     .catch((error) => {
       res.status(500).json({ error: true, errorMessage: error });
     });
-}
+};
 
 exports.getAllTransactionOfOneProduct = (req, res) => {
   Transactions.find({ idProduct: req.params.idProduct })
@@ -145,10 +176,16 @@ exports.getReport = async (req, res) => {
     const products = await Products.findAll();
     let response = [];
     for (let index in products) {
-      const info = await Transactions.findOfOneProductWithTimestamp(products[index].idProduct, 
-req.params.begin, req.params.end);
-      const stock = await Transactions.findStockOfOneProductWithTimestamp(products[index].idProduct, 
-req.params.begin, req.params.end);
+      const info = await Transactions.findOfOneProductWithTimestamp(
+        products[index].idProduct,
+        req.params.begin,
+        req.params.end
+      );
+      const stock = await Transactions.findStockOfOneProductWithTimestamp(
+        products[index].idProduct,
+        req.params.begin,
+        req.params.end
+      );
 
       if (stock.length > 0 && info.length > 0) {
         response.push({ ...info[0], stock: stock[0].stockAfter });
@@ -161,4 +198,4 @@ req.params.begin, req.params.end);
     console.log(err);
     res.status(500).json({ error: true, errorMessage: err });
   }
-}
+};
