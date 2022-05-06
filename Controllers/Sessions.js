@@ -862,7 +862,7 @@ exports.getReport = async (req, res) => {
       [Number(req.params.timestamp), Number(req.params.timestamp) + 86400]
     );
     const cash = await MoneyTransactions.customQuery(
-      "SELECT SUM(amountPaid) as money FROM sessions WHERE timestamp >= 1651705200 AND timestamp < 1651705200 + 86400 AND idMethod = 1",
+      "SELECT SUM(amountPaid) as money FROM sessions WHERE timestamp >= ? AND timestamp < ? AND idMethod = 1",
       [Number(req.params.timestamp), Number(req.params.timestamp) + 86400]
     );
     const mpesa = await MoneyTransactions.customQuery(
