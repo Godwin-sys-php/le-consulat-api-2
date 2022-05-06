@@ -851,27 +851,27 @@ exports.getReport = async (req, res) => {
     const allRecipe = await MoneyTransactions.findRecipe(req.params.timestamp);
     const debtPM = await MoneyTransactions.customQuery(
       "SELECT SUM(amountPaid) as debt FROM sessions WHERE idMethod = 4 AND timestamp >= ? AND timestamp < ?",
-      [req.params.timestamp, req.params.timestamp + 86400]
+      [Number(req.params.timestamp), Number(req.params.timestamp) + 86400]
     );
     const debt = await MoneyTransactions.customQuery(
       "SELECT SUM((total-reduction) - amountPaid) as debt FROM sessions WHERE (amountPaid < total - reduction) AND timestamp >= ? AND timestamp < ? AND idMethod != 4",
-      [req.params.timestamp, req.params.timestamp + 86400]
+      [Number(req.params.timestamp), Number(req.params.timestamp) + 86400]
     );
     const sumPayedDebt = await MoneyTransactions.customQuery(
       "SELECT SUM(amountPaid) as payedDebt FROM payedDebt WHERE timestamp >= ? AND timestamp < ?",
-      [req.params.timestamp, req.params.timestamp + 86400]
+      [Number(req.params.timestamp), Number(req.params.timestamp) + 86400]
     );
     const cash = await MoneyTransactions.customQuery(
-      "SELECT SUM(amountPaid) as money FROM sessions WHERE timestamp >= ? AND timestamp < ? AND idMethod = 1",
-      [req.params.timestamp, req.params.timestamp + 86400]
+      "SELECT SUM(amountPaid) as money FROM sessions WHERE timestamp >= 1651705200 AND timestamp < 1651705200 + 86400 AND idMethod = 1",
+      [Number(req.params.timestamp), Number(req.params.timestamp) + 86400]
     );
     const mpesa = await MoneyTransactions.customQuery(
       "SELECT SUM(amountPaid) as money FROM sessions WHERE timestamp >= ? AND timestamp < ? AND idMethod = 2",
-      [req.params.timestamp, req.params.timestamp + 86400]
+      [Number(req.params.timestamp), Number(req.params.timestamp) + 86400]
     );
     const cb = await MoneyTransactions.customQuery(
       "SELECT SUM(amountPaid) as money FROM sessions WHERE timestamp >= ? AND timestamp < ? AND idMethod = 3",
-      [req.params.timestamp, req.params.timestamp + 86400]
+      [Number(req.params.timestamp), Number(req.params.timestamp) + 86400]
     );
     const server = await Sessions.findServerOfADay(req.params.timestamp);
 
