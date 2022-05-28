@@ -176,7 +176,7 @@ class MoneyTransactions extends Base {
   findExpensesTransaction(timestamp) {
     return new Promise((resolve, reject) => {
       this.bdd.query(
-        'SELECT mt.*, cmt.name as nameOfCategory FROM moneyTransactions mt LEFT JOIN categoriesMoneyTransactions cmt ON mt.idCategory = cmt.idCategory WHERE mt.timestamp >= ? AND mt.timestamp < ? AND mt.outlet > 0', [Number(timestamp), Number(timestamp) + 86400],
+        'SELECT mt.*, cmt.name as nameOfCategory FROM moneyTransactions mt LEFT JOIN categoriesMoneyTransactions cmt ON mt.idCategory = cmt.idCategory WHERE mt.timestamp >= ? AND mt.timestamp < ? AND mt.outlet > 0 AND description != "Changement de paramètre de paiement"', [Number(timestamp), Number(timestamp) + 86400],
         (error, results, fields) => {
           if (error) reject(error);
           resolve(results);

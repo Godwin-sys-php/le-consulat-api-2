@@ -194,20 +194,24 @@ exports.updateItemOfSession = (req, res) => {
         toSetItem.price * req.body.quantity,
     };
 
-    const promises = [
-      Transactions.insertOne(toSetTransaction),
-      Products.updateOne(toSetProduct, idProduct),
-      Sessions.updateItem(toSetItem, { idSessionsItem: req.params.idItem }),
-      Sessions.updateOne(toSetSession, req.params.idSession),
-    ];
-
-    Promise.all(promises)
-      .then(() => {
-        res.status(200).json({ update: true });
-      })
-      .catch((error) => {
-        res.status(500).json({ error: true, errorMessage: error });
-      });
+    if (toSetTransaction.stockAfter < 0) {
+      res.status(400).json({ negativeStock: true });
+    } else {
+      const promises = [
+        Transactions.insertOne(toSetTransaction),
+        Products.updateOne(toSetProduct, idProduct),
+        Sessions.updateItem(toSetItem, { idSessionsItem: req.params.idItem }),
+        Sessions.updateOne(toSetSession, req.params.idSession),
+      ];
+  
+      Promise.all(promises)
+        .then(() => {
+          res.status(200).json({ update: true });
+        })
+        .catch((error) => {
+          res.status(500).json({ error: true, errorMessage: error });
+        });
+    }
   } else {
     const toSetTransaction = {
       idClient: req.session.idClient,
