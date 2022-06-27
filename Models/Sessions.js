@@ -283,6 +283,18 @@ findServerOfADay(timestamp) {
       );
     });
   }
+
+  customQuery(req, params) {
+    return new Promise((resolve, reject) => {
+      this.bdd.query(
+        req, params,
+        (error, results, fields) => {
+          if (error) reject(error);
+          resolve(results);
+        }
+      );
+    });
+  }
 }
 
 module.exports = new Sessions();

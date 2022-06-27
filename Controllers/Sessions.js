@@ -599,8 +599,15 @@ exports.getAllSession = (req, res) => {
 
 exports.getOneSession = (req, res) => {
   Sessions.find({ idSession: req.params.idSession })
-    .then((sessions) => {
-      res.status(200).json({ find: true, result: sessions });
+    .then(async (sessions) => {
+      const items = await Sessions.findItem({ idSession: req.params.idSession });
+      const products2 = await Products.findAll();
+      let products = [];
+      const methods = await Sessions.findMethods();
+      for (let index in products2) {
+        products.push({...products2[index], id: products2[index].idProduct});
+      }
+      res.status(200).json({ find: true, result: sessions, items: items, products: products, methods: methods });
     })
     .catch((error) => {
       res.status(500).json({ error: true, errorMessage: error });
@@ -621,6 +628,17 @@ exports.getNotFinished = (req, res) => {
   Sessions.find({ beenPaid: 0 })
     .then((sessions) => {
       res.status(200).json({ find: true, result: sessions });
+    })
+    .catch((error) => {
+      res.status(500).json({ error: true, errorMessage: error });
+    });
+};
+
+exports.getNotFinishedAsWaiter = (req, res) => {
+  Sessions.customQuery("SELECT * FROM sessions WHERE beenPaid = 0 AND nameOfServer = ?", [req.user.pseudo.toUpperCase()], )
+    .then(async (sessions) => {
+      const clients = await Clients.findAll();
+      res.status(200).json({ find: true, result: sessions, clients: clients });
     })
     .catch((error) => {
       res.status(500).json({ error: true, errorMessage: error });
@@ -764,6 +782,9 @@ exports.deleteOneSession = async (req, res) => {
 };
 
 exports.deleteOneItem = async (req, res) => {
+  console.log('Hello');
+  console.log('Hello');
+  console.log('Hello');
   const now = moment();
   const toSetTransaction = {
     idClient: req.session.idClient,

@@ -38,6 +38,7 @@ router.get('/get/report/:begin/:end', limits(8000, 15), auth, sessionCtrl.getRep
 router.get('/:idSession/items', limits(8000, 15), existSession, auth, sessionCtrl.getItemOfSession); // Récupère les items d'une session
 router.get('/:idSession/items/:idItem/accompaniment', limits(8000, 15), existSession, existItem, auth, sessionCtrl.getAccompanimentOfItem); // Récupère les accompagnement d'un item
 router.get('/get/notFinished', limits(8000, 15), auth, sessionCtrl.getNotFinished); // Récupère les sessions non terminées
+router.get('/get/notFinishedWaiter', limits(8000, 15), auth, sessionCtrl.getNotFinishedAsWaiter); // Récupère les sessions non terminées d'un serveur
 router.get('/get/notPaid', limits(8000, 15), auth, sessionCtrl.getNotPaied); // Récupère les sessions non payé mais terminé
 router.get('/get/finished', limits(8000, 15), auth, sessionCtrl.getFinished); // Récupère les sessions finit
 router.get('/get/debt', limits(8000, 15), auth, sessionCtrl.getDebt); // Récupère les dettes

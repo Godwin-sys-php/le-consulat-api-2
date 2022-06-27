@@ -17,6 +17,7 @@ exports.login = (req, res) => {
             } else {
               res.status(200).json({
                 idUser: user[0].idUser,
+                user: user[0],
                 token: jwt.sign({ idUser: user[0].idUser, }, process.env.TOKEN, {
                   expiresIn: "2d",
                 })
