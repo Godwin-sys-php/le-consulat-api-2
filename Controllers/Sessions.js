@@ -29,7 +29,10 @@ exports.startNewSession = (req, res) => {
 
           Sessions.insertOne(toInsert)
             .then((result) => {
-              res
+              req.app
+                .get("socketService")
+                .broadcastEmiter(result.insertId, "new-session");
+              return res
                 .status(201)
                 .json({ create: true, idInserted: result.insertId });
             })
@@ -55,7 +58,12 @@ exports.startNewSession = (req, res) => {
     console.log(toInsert);
     Sessions.insertOne(toInsert)
       .then((result) => {
-        res.status(201).json({ create: true, idInserted: result.insertId });
+        req.app
+          .get("socketService")
+          .broadcastEmiter(result.insertId, "new-session");
+        return res
+          .status(201)
+          .json({ create: true, idInserted: result.insertId });
       })
       .catch((error) => {
         console.log(error);
@@ -79,6 +87,9 @@ exports.updateSession = (req, res) => {
           req.params.idSession
         )
           .then(() => {
+            req.app
+              .get("socketService")
+              .broadcastEmiter(req.params.idSession, "edit-session");
             res.status(200).json({ update: true });
           })
           .catch((error) => {
@@ -146,6 +157,9 @@ exports.addItemToSession = (req, res) => {
 
     Promise.all(promises)
       .then(() => {
+        req.app
+          .get("socketService")
+          .broadcastEmiter(req.params.idSession, "edit-session");
         res.status(201).json({ create: true });
       })
       .catch((error) => {
@@ -203,9 +217,12 @@ exports.updateItemOfSession = (req, res) => {
         Sessions.updateItem(toSetItem, { idSessionsItem: req.params.idItem }),
         Sessions.updateOne(toSetSession, req.params.idSession),
       ];
-  
+
       Promise.all(promises)
         .then(() => {
+          req.app
+            .get("socketService")
+            .broadcastEmiter(req.params.idSession, "edit-session");
           res.status(200).json({ update: true });
         })
         .catch((error) => {
@@ -276,6 +293,9 @@ exports.updateItemOfSession = (req, res) => {
 
       Promise.all(promises)
         .then(() => {
+          req.app
+            .get("socketService")
+            .broadcastEmiter(req.params.idSession, "edit-session");
           res.status(200).json({ update: true });
         })
         .catch((error) => {
@@ -332,6 +352,9 @@ exports.addAccompanimentToSessionItem = (req, res) => {
 
     Promise.all(promises)
       .then(() => {
+        req.app
+          .get("socketService")
+          .broadcastEmiter(req.params.idSession, "edit-session");
         res.status(200).json({ create: true });
       })
       .catch((error) => {
@@ -418,6 +441,9 @@ exports.editMoneyOfSession = async (req, res) => {
         toInsert,
       ]);
     }
+    req.app
+      .get("socketService")
+      .broadcastEmiter(req.params.idSession, "edit-session");
     return res.status(200).json({ update: true });
   } else {
     return res.status(400).json({ invalidForm: true });
@@ -541,6 +567,9 @@ exports.pay = (req, res) => {
                   "UPDATE methods SET amount = ? WHERE idMethod = ?",
                   [last[0].amount + req.body.amountPaid, req.body.paymentMethod]
                 );
+                req.app
+                  .get("socketService")
+                  .broadcastEmiter(req.params.idSession, "edit-session");
                 res.status(200).json({ update: true });
               })
               .catch((error) => {
@@ -565,6 +594,9 @@ exports.pay = (req, res) => {
 exports.addReduction = (req, res) => {
   Sessions.updateOne({ reduction: req.body.reduction }, req.params.idSession)
     .then(() => {
+      req.app
+        .get("socketService")
+        .broadcastEmiter(req.params.idSession, "edit-session");
       res.status(200).json({ update: true });
     })
     .catch((error) => {
@@ -575,6 +607,9 @@ exports.addReduction = (req, res) => {
 exports.reductionToZero = (req, res) => {
   Sessions.updateOne({ reduction: 0 }, req.params.idSession)
     .then(() => {
+      req.app
+        .get("socketService")
+        .broadcastEmiter(req.params.idSession, "edit-session");
       res.status(200).json({ update: true });
     })
     .catch((error) => {
@@ -600,14 +635,24 @@ exports.getAllSession = (req, res) => {
 exports.getOneSession = (req, res) => {
   Sessions.find({ idSession: req.params.idSession })
     .then(async (sessions) => {
-      const items = await Sessions.findItem({ idSession: req.params.idSession });
+      const items = await Sessions.findItem({
+        idSession: req.params.idSession,
+      });
       const products2 = await Products.findAll();
       let products = [];
       const methods = await Sessions.findMethods();
       for (let index in products2) {
-        products.push({...products2[index], id: products2[index].idProduct});
+        products.push({ ...products2[index], id: products2[index].idProduct });
       }
-      res.status(200).json({ find: true, result: sessions, items: items, products: products, methods: methods });
+      res
+        .status(200)
+        .json({
+          find: true,
+          result: sessions,
+          items: items,
+          products: products,
+          methods: methods,
+        });
     })
     .catch((error) => {
       res.status(500).json({ error: true, errorMessage: error });
@@ -635,7 +680,10 @@ exports.getNotFinished = (req, res) => {
 };
 
 exports.getNotFinishedAsWaiter = (req, res) => {
-  Sessions.customQuery("SELECT * FROM sessions WHERE beenPaid = 0 AND nameOfServer = ?", [req.user.pseudo.toUpperCase()], )
+  Sessions.customQuery(
+    "SELECT * FROM sessions WHERE beenPaid = 0 AND nameOfServer = ?",
+    [req.user.pseudo.toUpperCase()]
+  )
     .then(async (sessions) => {
       const clients = await Clients.findAll();
       res.status(200).json({ find: true, result: sessions, clients: clients });
@@ -744,6 +792,9 @@ exports.deleteOneSession = async (req, res) => {
           enter: items[index].quantity,
         });
 
+        req.app
+          .get("socketService")
+          .broadcastEmiter(req.params.idSession, "edit-session");
         return res.status(200).json({ delete: true });
       } else {
         await Sessions.deleteAccompAndItem(items[index].idSessionsItem);
@@ -778,13 +829,14 @@ exports.deleteOneSession = async (req, res) => {
 
   await Sessions.deleteOne(req.params.idSession);
 
+  req.app.get("socketService").broadcastEmiter(req.params.idSession, "edit-session");
   return res.status(200).json({ delete: true });
 };
 
 exports.deleteOneItem = async (req, res) => {
-  console.log('Hello');
-  console.log('Hello');
-  console.log('Hello');
+  console.log("Hello");
+  console.log("Hello");
+  console.log("Hello");
   const now = moment();
   const toSetTransaction = {
     idClient: req.session.idClient,
@@ -836,6 +888,9 @@ exports.deleteOneItem = async (req, res) => {
         enter: req.item.quantity,
       });
 
+      req.app
+        .get("socketService")
+        .broadcastEmiter(req.params.idSession, "edit-session");
       return res.status(200).json({ delete: true });
     } else {
       await Sessions.deleteAccompAndItem(req.params.idItem);
@@ -857,6 +912,9 @@ exports.deleteOneItem = async (req, res) => {
         enter: req.item.quantity,
       });
 
+      req.app
+        .get("socketService")
+        .broadcastEmiter(req.params.idSession, "edit-session");
       return res.status(200).json({ delete: true });
     }
   } catch (error) {
