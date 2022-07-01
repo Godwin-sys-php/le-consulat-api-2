@@ -17,6 +17,8 @@ const app = express();
 
 const server = require('http').Server(app);
 
+const moment = require('moment');
+
 
 app.set("socketService", new SocketService(server));
 app.use(bodyParser.urlencoded({limit: '50mb', extended: true}));
@@ -46,6 +48,11 @@ app.use((req, res, next) => {
 app.use(
   "/Invoices",
   express.static(path.join(__dirname, "Invoices"))
+);
+
+app.use(
+  "/Vouchers",
+  express.static(path.join(__dirname, "Vouchers"))
 );
 
 app.use('/web', (express.static(path.join(__dirname, 'build'))));

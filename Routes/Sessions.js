@@ -29,6 +29,8 @@ router.put('/:idSession/pay', limits(8000, 15), existSession, verifyIsFinish, au
 router.put('/:idSession/editPayment', limits(8000, 15), existSession, verifyIsFinish, auth, sessionCtrl.editMoneyOfSession); // Modifie le moyen de paiement d'une session
 router.put('/:idSession/reduction', limits(8000, 15), existSession, verifyIsNotFinish, auth, sessionCtrl.addReduction); // Rajoute une réduction à une session
 router.put('/:idSession/reductionToZero', limits(8000, 15), existSession, verifyIsNotFinish, auth, sessionCtrl.reductionToZero); // Rajoute une réduction à une session
+router.put('/:idSession/print', limits(8000, 15), existSession, verifyIsFinish, auth, sessionCtrl.printInvoice); // Fait une requete websocket pour imprimer la sesion
+router.put('/:idSession/printVoucher', limits(8000, 15), existSession, verifyIsNotFinish, auth, sessionCtrl.generateVoucher); // Fait une requete websocket pour imprimer la sesion
 
 router.get('/', limits(8000, 15), auth, sessionCtrl.getAllSession); // Récupère toute les sessions
 router.get('/special/methods', limits(8000, 15), auth, sessionCtrl.getMethods); // Récupère toute les méthodes
@@ -42,6 +44,8 @@ router.get('/get/notFinishedWaiter', limits(8000, 15), auth, sessionCtrl.getNotF
 router.get('/get/notPaid', limits(8000, 15), auth, sessionCtrl.getNotPaied); // Récupère les sessions non payé mais terminé
 router.get('/get/finished', limits(8000, 15), auth, sessionCtrl.getFinished); // Récupère les sessions finit
 router.get('/get/debt', limits(8000, 15), auth, sessionCtrl.getDebt); // Récupère les dettes
+router.get('/special/sessions-prints-works', limits(8000, 15), auth, sessionCtrl.getSessionsPrintWorks); // Récupère les dettes
+router.get('/special/vouchers-prints-works', limits(8000, 15), auth, sessionCtrl.getVouchersPrintWorkds); // Récupère les dettes
 
 router.delete('/:idSession/items/:idItem', limits(8000, 15), existSession, existItem, verifyIsNotFinish, auth, sessionCtrl.deleteOneItem); // Supprime une élément d'une session
 router.delete('/:idSession/', limits(8000, 15), existSession, authSpecial, sessionCtrl.deleteOneSession); // Supprime une session

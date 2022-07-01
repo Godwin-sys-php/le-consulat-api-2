@@ -5,6 +5,10 @@ const MoneyTransactions = require("../Models/MoneyTransactions");
 const _ = require("lodash");
 const Products = require("../Models/Products");
 const Clients = require("../Models/Clients");
+const ejs = require("ejs");
+const pdf = require("html-pdf");
+const path = require("path");
+const fs = require("fs");
 
 exports.startNewSession = (req, res) => {
   console.log(req.body);
@@ -113,6 +117,7 @@ exports.addItemToSession = (req, res) => {
       req.session.idUser == 0
         ? req.product.price - req.product.price * 0.1
         : req.product.price,
+    taken: 0,
   };
   const toInsert2 = _.isNull(req.session.idClient)
     ? {
@@ -644,15 +649,13 @@ exports.getOneSession = (req, res) => {
       for (let index in products2) {
         products.push({ ...products2[index], id: products2[index].idProduct });
       }
-      res
-        .status(200)
-        .json({
-          find: true,
-          result: sessions,
-          items: items,
-          products: products,
-          methods: methods,
-        });
+      res.status(200).json({
+        find: true,
+        result: sessions,
+        items: items,
+        products: products,
+        methods: methods,
+      });
     })
     .catch((error) => {
       res.status(500).json({ error: true, errorMessage: error });
@@ -829,7 +832,9 @@ exports.deleteOneSession = async (req, res) => {
 
   await Sessions.deleteOne(req.params.idSession);
 
-  req.app.get("socketService").broadcastEmiter(req.params.idSession, "edit-session");
+  req.app
+    .get("socketService")
+    .broadcastEmiter(req.params.idSession, "edit-session");
   return res.status(200).json({ delete: true });
 };
 
@@ -1020,3 +1025,124 @@ exports.getReportPeriod = async (req, res) => {
     res.status(500).json({ error: true, errorMessage: error });
   }
 };
+
+exports.printInvoice = async (req, res) => {
+  try {
+    const session = await Sessions.find({ idSession: req.params.idSession });
+    req.app
+      .get("socketService")
+      .broadcastEmiter(session[0].invoiceUrl, "print-session");
+
+    return res.status(200).json({ update: true });
+  } catch (error) {
+    return res.status(500).json({ error: true });
+  }
+};
+
+exports.generateVoucher = async (req, res) => {
+  try {
+    console.log("SCUMMMMMMM");
+    const now = moment();
+    const items = await Sessions.customQuery(
+      "SELECT nameOfProduct, quantity-taken as quantity2print, price from sessionsItem WHERE quantity != taken AND idSession = ?",
+      [req.params.idSession]
+    );
+    console.log(items);
+    await Sessions.customQuery(
+      "UPDATE sessionsItem SET taken = quantity WHERE idSession = ?",
+      [req.params.idSession]
+    );
+
+    const number = fs.readFileSync(
+      path.join(__dirname, "../Assets/", "number-voucher.txt"),
+      "utf-8"
+    );
+
+    const nameOfTemplate = "voucher.ejs";
+    const data = {
+      data: {
+        items: items,
+        date: now.format("DD/MM/yyyy"),
+        hours: now.format("H:mm"),
+        number: number,
+        nameOfServer: req.session.nameOfServer,
+        client: req.session.nameOfClient,
+      },
+    };
+
+    ejs.renderFile(
+      path.join(__dirname, "../Assets/", nameOfTemplate),
+      data,
+      (err, data) => {
+        if (err) {
+          console.log(err);
+        } else {
+          let options = {
+            width: "7.5cm",
+            localUrlAccess: true,
+          };
+
+          const nameOfFile = `Bon_${number}_${req.session.nameOfClient}.pdf`;
+          pdf
+            .create(data, options)
+            .toFile(`Vouchers/${nameOfFile}`, (err, data) => {
+              if (err) {
+                console.log(err);
+              } else {
+                Sessions.customQuery("INSERT INTO vouchers SET ?", {
+                  voucherUrl: `${req.protocol}://le-consulat-drc.com/Vouchers/${nameOfFile}`,
+                  nameOfServer: req.session.nameOfServer,
+                  nameOfClient: req.session.nameOfClient,
+                  timestamp: now.unix(),
+                })
+                  .then(() => {
+                    fs.writeFile(
+                      path.join(__dirname, "../Assets/", "number-voucher.txt"),
+                      `${Number(number) + 1}`,
+                      "utf8",
+                      () => {
+                        req.app
+                          .get("socketService")
+                          .broadcastEmiter( `${req.protocol}://${req.host}/Vouchers/${nameOfFile}`, "print-session");
+                        res.status(200).json({ update: true });
+                      }
+                    );
+                  })
+                  .catch((error) => {
+                    console.log(error);
+                    res.status(500).json({ error: true, errorMessage: error });
+                  });
+              }
+            });
+        }
+      }
+    );
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ error: true });
+  }
+};
+
+exports.getSessionsPrintWorks = async (req, res) => {
+  try {
+    
+    const sessions = await Sessions.customQuery("SELECT * FROM sessions WHERE wasOver = 1 AND timestamp >= ? ORDER BY idSession DESC", [moment().startOf('day').unix()]);
+
+    return res.status(200).json({ find: true, sessions: sessions });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ error: true });
+  }
+}
+
+exports.getVouchersPrintWorkds = async (req, res) => {
+  try {
+    
+    const vouchers = await Sessions.customQuery("SELECT * FROM vouchers WHERE timestamp >= ? ORDER BY idVoucher DESC", [moment().startOf('day').unix()]);
+
+    return res.status(200).json({ find: true, vouchers: vouchers });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ error: true });
+  }
+}

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      h1 {
+        text-align: center;
+        padding-top: 75px;
+      }
+      h2, h3 {
+margin-top: -8px;
+        text-align: center;
+      }
+      hr {
+        background-color: black;
+        border-color: black;
+      }
+      .content {
+        font-size: 25px;
+        margin-right: 75px;
+        margin-left: 75px;
+      }
+      .item {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th {
+        border: solid 1px black;
+      }
+      .item-element {
+        border: solid 1px black;
+        text-align: right;
+      }
+      .item-element-name {
+        border: solid 1px black;
+        text-align: left;
+      }
+      .bref {
+        text-align: right;
+        border-collapse: collapse;
+        width: 40%;
+        border-bottom: dashed 1px black;
+      }
+      .total {
+        width: 100%;
+        float: none;
+      }
+      .align-right {
+        text-align: right;
+      }
+      .address {
+        text-align: center;
+        font-size: 22px;
+      }
+      .info {
+        font-size: 20.5px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>BONS N°: <%= data.number %></h1>
+    <div class="content">
+      <div class="info">
+        DATE <%= data.date %>  <br />
+        HEURE <%= data.hours %> <br />
+        CLIENT <%= data.client %> <br />
+        SERVEUSE <%= data.nameOfServer %> <br /><br />
+      </div>
+      <table class="item">
+        <tr>
+          <th>ARTICLE</th>
+          <th>QTÉ</th>
+          <th>PU</th>
+          <th>PT</th>
+        </tr>
+        <% data.items.forEach(item => { %>
+          <tr>
+            <td class="item-element-name"><%= item.nameOfProduct %></td>
+            <td class="item-element"><%= item.quantity2print %></td>
+            <td class="item-element"><%= item.price %>$</td>
+            <td class="item-element"><%= item.price * item.quantity2print %>$</td>
+          </tr>
+        <% }); %>
+      </table>
+      <br />
+    </div>
+  </body>
+</html>
