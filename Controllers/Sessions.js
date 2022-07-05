@@ -1103,7 +1103,7 @@ exports.generateVoucher = async (req, res) => {
                       () => {
                         req.app
                           .get("socketService")
-                          .broadcastEmiter( `${req.protocol}://${req.host}/Vouchers/${nameOfFile}`, "print-session");
+                          .broadcastEmiter( `${req.protocol}://le-consulat-drc.com/Vouchers/${nameOfFile}`, "print-session");
                         res.status(200).json({ update: true });
                       }
                     );
