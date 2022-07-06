@@ -1053,13 +1053,13 @@ exports.generateVoucherForDrinks = async (req, res) => {
     console.log("SCUMMMMMMM");
     const now = moment();
     const items = await Sessions.customQuery(
-      "SELECT i.nameOfProduct as nameOfProduct, i.quantity-taken as quantity2print, i.price as price from sessionsItem i left join products p on p.idProduct = i.idProduct WHERE i.quantity != taken AND i.idSession = ? AND (p.type = 'Boissons' OR p.type='Cigarettes')",
+      "SELECT i.nameOfProduct as nameOfProduct, i.quantity-taken as quantity2print, i.price as price from sessionsItem i left join products p on p.idProduct = i.idProduct WHERE i.quantity != taken AND i.idSession = ? AND (p.type = 'Boissons' OR p.type='Cigarettes' OR p.type='Spiritueux')",
       [req.params.idSession]
     );
     
     console.log(items);
     await Sessions.customQuery(
-      "UPDATE sessionsItem i left join products p on p.idProduct = i.idProduct SET i.taken = i.quantity WHERE i.idSession = ? AND (p.type = 'Boissons' OR p.type='Cigarettes')",
+      "UPDATE sessionsItem i left join products p on p.idProduct = i.idProduct SET i.taken = i.quantity WHERE i.idSession = ? AND (p.type = 'Boissons' OR p.type='Cigarettes' OR p.type='Spiritueux')",
       [req.params.idSession]
     );
 
