@@ -52,7 +52,7 @@ app.use(
 
 app.use(
   "/Vouchers",
-  express.static(path.join(__dirname, "Vouchers"))
+  express.static(path.join(__dirname, "Invoices", "Vouchers"))
 );
 
 app.use('/web', (express.static(path.join(__dirname, 'build'))));

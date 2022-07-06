@@ -9,6 +9,7 @@ const ejs = require("ejs");
 const pdf = require("html-pdf");
 const path = require("path");
 const fs = require("fs");
+const fetch = require("node-fetch");
 
 exports.startNewSession = (req, res) => {
   console.log(req.body);
@@ -674,10 +675,18 @@ exports.getItemOfSession = (req, res) => {
 
 exports.getNotFinished = (req, res) => {
   Sessions.find({ beenPaid: 0 })
-    .then((sessions) => {
-      res.status(200).json({ find: true, result: sessions });
+    .then(async (sessions) => {
+      const tef = await fetch("https://api.techeatfast.com/commands/restaurant/2/not-done", {
+        method: "GET",
+        headers: {
+          'Authorization': 'Bearer token-special-le-consulat', 
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      }).then(res => res.json());
+      res.status(200).json({ find: true, result: sessions, tef: tef.result, });
     })
     .catch((error) => {
+      console.log(error);
       res.status(500).json({ error: true, errorMessage: error });
     });
 };
@@ -1039,17 +1048,18 @@ exports.printInvoice = async (req, res) => {
   }
 };
 
-exports.generateVoucher = async (req, res) => {
+exports.generateVoucherForDrinks = async (req, res) => {
   try {
     console.log("SCUMMMMMMM");
     const now = moment();
     const items = await Sessions.customQuery(
-      "SELECT nameOfProduct, quantity-taken as quantity2print, price from sessionsItem WHERE quantity != taken AND idSession = ?",
+      "SELECT i.nameOfProduct as nameOfProduct, i.quantity-taken as quantity2print, i.price as price from sessionsItem i left join products p on p.idProduct = i.idProduct WHERE i.quantity != taken AND i.idSession = ? AND (p.type = 'Boissons' OR p.type='Cigarettes')",
       [req.params.idSession]
     );
+    
     console.log(items);
     await Sessions.customQuery(
-      "UPDATE sessionsItem SET taken = quantity WHERE idSession = ?",
+      "UPDATE sessionsItem i left join products p on p.idProduct = i.idProduct SET i.taken = i.quantity WHERE i.idSession = ? AND (p.type = 'Boissons' OR p.type='Cigarettes')",
       [req.params.idSession]
     );
 
@@ -1085,7 +1095,92 @@ exports.generateVoucher = async (req, res) => {
           const nameOfFile = `Bon_${number}_${req.session.nameOfClient}.pdf`;
           pdf
             .create(data, options)
-            .toFile(`Vouchers/${nameOfFile}`, (err, data) => {
+            .toFile(`Invoices/Vouchers/${nameOfFile}`, (err, data) => {
+              if (err) {
+                console.log(err);
+              } else {
+                Sessions.customQuery("INSERT INTO vouchers SET ?", {
+                  voucherUrl: `${req.protocol}://le-consulat-drc.com/Vouchers/${nameOfFile}`,
+                  nameOfServer: req.session.nameOfServer,
+                  nameOfClient: req.session.nameOfClient,
+                  timestamp: now.unix(),
+                })
+                  .then(() => {
+                    fs.writeFile(
+                      path.join(__dirname, "../Assets/", "number-voucher.txt"),
+                      `${Number(number) + 1}`,
+                      "utf8",
+                      () => {
+                        req.app
+                          .get("socketService")
+                          .broadcastEmiter( `${req.protocol}://le-consulat-drc.com/Vouchers/${nameOfFile}`, "print-session");
+                        res.status(200).json({ update: true });
+                      }
+                    );
+                  })
+                  .catch((error) => {
+                    console.log(error);
+                    res.status(500).json({ error: true, errorMessage: error });
+                  });
+              }
+            });
+        }
+      }
+    );
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ error: true });
+  }
+};
+
+exports.generateVoucherForFoods = async (req, res) => {
+  try {
+    console.log("SCUMMMMMMM");
+    const now = moment();
+    const items = await Sessions.customQuery(
+      "SELECT i.nameOfProduct as nameOfProduct, i.quantity-taken as quantity2print, i.price as price from sessionsItem i left join products p on p.idProduct = i.idProduct WHERE i.quantity != taken AND i.idSession = ? AND (p.type = 'Plâts')",
+      [req.params.idSession]
+    );
+    
+    console.log(items);
+    await Sessions.customQuery(
+      "UPDATE sessionsItem i left join products p on p.idProduct = i.idProduct SET i.taken = i.quantity WHERE i.idSession = ? AND (p.type='Plâts')",
+      [req.params.idSession]
+    );
+
+    const number = fs.readFileSync(
+      path.join(__dirname, "../Assets/", "number-voucher.txt"),
+      "utf-8"
+    );
+
+    const nameOfTemplate = "voucher.ejs";
+    const data = {
+      data: {
+        items: items,
+        date: now.format("DD/MM/yyyy"),
+        hours: now.format("H:mm"),
+        number: number,
+        nameOfServer: req.session.nameOfServer,
+        client: req.session.nameOfClient,
+      },
+    };
+
+    ejs.renderFile(
+      path.join(__dirname, "../Assets/", nameOfTemplate),
+      data,
+      (err, data) => {
+        if (err) {
+          console.log(err);
+        } else {
+          let options = {
+            width: "7.5cm",
+            localUrlAccess: true,
+          };
+
+          const nameOfFile = `Bon_${number}_${req.session.nameOfClient}.pdf`;
+          pdf
+            .create(data, options)
+            .toFile(`Invoices/Vouchers/${nameOfFile}`, (err, data) => {
               if (err) {
                 console.log(err);
               } else {

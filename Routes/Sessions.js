@@ -30,7 +30,8 @@ router.put('/:idSession/editPayment', limits(8000, 15), existSession, verifyIsFi
 router.put('/:idSession/reduction', limits(8000, 15), existSession, verifyIsNotFinish, auth, sessionCtrl.addReduction); // Rajoute une réduction à une session
 router.put('/:idSession/reductionToZero', limits(8000, 15), existSession, verifyIsNotFinish, auth, sessionCtrl.reductionToZero); // Rajoute une réduction à une session
 router.put('/:idSession/print', limits(8000, 15), existSession, verifyIsFinish, auth, sessionCtrl.printInvoice); // Fait une requete websocket pour imprimer la sesion
-router.put('/:idSession/printVoucher', limits(8000, 15), existSession, verifyIsNotFinish, auth, sessionCtrl.generateVoucher); // Fait une requete websocket pour imprimer la sesion
+router.put('/:idSession/printDrinksVoucher', limits(8000, 15), existSession, verifyIsNotFinish, auth, sessionCtrl.generateVoucherForDrinks); // Fait une requete websocket pour imprimer la sesion
+router.put('/:idSession/printFoodsVoucher', limits(8000, 15), existSession, verifyIsNotFinish, auth, sessionCtrl.generateVoucherForFoods); // Fait une requete websocket pour imprimer la sesion
 
 router.get('/', limits(8000, 15), auth, sessionCtrl.getAllSession); // Récupère toute les sessions
 router.get('/special/methods', limits(8000, 15), auth, sessionCtrl.getMethods); // Récupère toute les méthodes
