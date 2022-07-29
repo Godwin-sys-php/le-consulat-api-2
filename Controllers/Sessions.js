@@ -369,6 +369,34 @@ exports.addAccompanimentToSessionItem = (req, res) => {
   }
 };
 
+exports.getDebtSumPerClient = async (req, res) => {
+  try {
+    const debt = await MoneyTransactions.customQuery(
+      "SELECT SUM((total-reduction) - amountPaid) as debt, nameOfClient FROM sessions WHERE idMethod = 4 OR (amountPaid < total - reduction) GROUP BY nameOfClient"
+    );
+    return res.status(200).json({ find: true, result: debt });
+  } catch (error) {
+    return res.status(500).json({ error: true });
+  }
+}
+
+exports.getDebtsOfOneClient = async (req, res) => {
+  try {
+    console.log("sdf");
+    const sumOfDebt = await MoneyTransactions.customQuery(
+      "SELECT SUM((total-reduction) - amountPaid) as debt FROM sessions WHERE (idMethod = 4 OR (amountPaid < total - reduction)) AND nameOfClient = ?", [req.params.nameOfClient]
+    );
+    const sessions = await MoneyTransactions.customQuery(
+      "SELECT * FROM sessions WHERE (idMethod = 4 OR (amountPaid < total - reduction)) AND nameOfClient = ?", [req.params.nameOfClient]
+    );
+    const paymentHistory = await Sessions.customQuery("SELECT amountPaid, timestamp, idSession FROM payedDebt WHERE nameOfClient = ?", [req.params.nameOfClient]);
+    return res.status(200).json({ find: true, sumOfDebt: sumOfDebt[0].debt, sessions: sessions, paymentHistory: paymentHistory, });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ error: true });
+  }
+}
+
 exports.editMoneyOfSession = async (req, res) => {
   const now = moment();
   const lastTransaction = await MoneyTransactions.findLast();
@@ -644,11 +672,16 @@ exports.getOneSession = (req, res) => {
       const items = await Sessions.findItem({
         idSession: req.params.idSession,
       });
+      let paymentHistory = [];
       const products2 = await Products.findAll();
       let products = [];
       const methods = await Sessions.findMethods();
       for (let index in products2) {
         products.push({ ...products2[index], id: products2[index].idProduct });
+      }
+      if (sessions[0].beenPaid) {
+        paymentHistory = await Sessions.customQuery("SELECT amountPaid, timestamp FROM payedDebt WHERE idSession = ?", [req.params.idSession]);
+
       }
       res.status(200).json({
         find: true,
@@ -656,9 +689,11 @@ exports.getOneSession = (req, res) => {
         items: items,
         products: products,
         methods: methods,
+        paymentHistory: paymentHistory,
       });
     })
     .catch((error) => {
+      console.log(error);
       res.status(500).json({ error: true, errorMessage: error });
     });
 };
@@ -707,7 +742,7 @@ exports.getNotFinishedAsWaiter = (req, res) => {
 
 exports.getDebt = async (req, res) => {
   const debt = await MoneyTransactions.customQuery(
-    "SELECT * FROM sessions WHERE idMethod = 4 OR (amountPaid < total - reduction)"
+    "SELECT * FROM sessions WHERE idMethod = 4 OR (amountPaid < total - reduction) ORDER BY idSession DESC"
   );
 
   return res.status(200).json({ find: true, result: debt });

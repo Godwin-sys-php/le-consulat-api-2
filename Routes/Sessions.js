@@ -36,6 +36,8 @@ router.put('/:idSession/printFoodsVoucher', limits(8000, 15), existSession, veri
 router.get('/', limits(8000, 15), auth, sessionCtrl.getAllSession); // Récupère toute les sessions
 router.get('/special/methods', limits(8000, 15), auth, sessionCtrl.getMethods); // Récupère toute les méthodes
 router.get('/:idSession', limits(8000, 15), existSession, auth, sessionCtrl.getOneSession); // Récupère une session
+router.get('/special/debt', limits(8000, 15), auth, sessionCtrl.getDebtSumPerClient); // Récupère les dettes des clients
+router.get('/special/client-debt/:nameOfClient', limits(8000, 15), auth, sessionCtrl.getDebtsOfOneClient); // Récupère les dettes d'un clients
 router.get('/get/report/:timestamp', limits(8000, 15), auth, sessionCtrl.getReport); // Renvoie le rapport d'une journée
 router.get('/get/report/:begin/:end', limits(8000, 15), auth, sessionCtrl.getReportPeriod); // Renvoie le rapport d'une journée
 router.get('/:idSession/items', limits(8000, 15), existSession, auth, sessionCtrl.getItemOfSession); // Récupère les items d'une session

@@ -116,7 +116,7 @@ class Sessions extends Base {
   findRecipeOfPeriod(begin, end) {
     return new Promise((resolve, reject) => {
       this.bdd.query(
-        'SELECT SUM(amountPaid) AS recipe FROM sessions WHERE timestamp >= ? AND timestamp < ? AND wasOver=1 AND beenPaid=1 AND idMethod !== 4', [Number(begin), Number(end) + 86400],
+        'SELECT SUM(amountPaid) AS recipe FROM sessions WHERE timestamp >= ? AND timestamp < ? AND wasOver=1 AND beenPaid=1 AND idMethod != 4', [Number(begin), Number(end) + 86400],
         (error, results, fields) => {
           if (error) reject(error);
           resolve(results);
