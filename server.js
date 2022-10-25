@@ -63,12 +63,19 @@ app.get('/application/*', function (req, res) {
 app.get('/', (req, res) => {
 	res.redirect("/application/");
 });
+app.get('/invitation/:name', function (req, res) {
+  res.render('index.ejs', {
+    nameOfClient: req.params.name
+  })
+});
 app.use('/api/users', usersRoute);
 app.use('/api/clients', clientsRoute);
 app.use('/api/products', productsRoute);
 app.use('/api/sessions', sessionsRoute);
 app.use('/api/transactions', transactionsRoute);
 app.use('/api/money-transactions', moneyTransactionsRoute);
+
+app.use('/assets', express.static(__dirname + '/Assets'));
 
 
 server.listen(4200, function () {
