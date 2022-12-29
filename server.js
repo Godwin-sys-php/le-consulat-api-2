@@ -77,6 +77,8 @@ app.use('/api/money-transactions', moneyTransactionsRoute);
 
 app.use('/assets', express.static(__dirname + '/Assets'));
 
+app.use('/Factures_Enzo', express.static(__dirname + '/Factures_Enzo'));
+
 
 server.listen(4200, function () {
   console.debug(`listening on port 4200`);
