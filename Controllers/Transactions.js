@@ -33,12 +33,25 @@ exports.addEnter = async (req, res) => {
 
     await Transactions.insertOne(toInsert)
       .then(async () => {
+        const lastTransactionMethod = await MoneyTransactions.customQuery(
+          "SELECT * FROM methods WHERE idMethod = 1"
+        );
         const lastTransaction = await MoneyTransactions.findLast();
+        if (
+          Number(lastTransactionMethod[0].amount) -
+            Number(req.body.buyPrice) * Number(req.body.quantity) <
+          0
+        ) {
+          return res.status(400).json({ negativeAmount: true });
+        }
         MoneyTransactions.insertOne({
           idCategory: idCategory,
           idMethod: 1,
           enter: 0,
           outlet: Number(req.body.buyPrice) * Number(req.body.quantity),
+          amountAfterMethod:
+            Number(lastTransactionMethod[0].amount) -
+            Number(req.body.buyPrice) * Number(req.body.quantity),
           amountAfter:
             Number(lastTransaction[0].amountAfter) -
             Number(req.body.buyPrice) * Number(req.body.quantity),
@@ -141,12 +154,10 @@ exports.getOfOneDay = async (req, res) => {
               console.log("Begin", begin[0]);
               console.log("End", end[0]);
               console.log("Transaction", transactions[0]);
-              res
-                .status(200)
-                .json({
-                  find: true,
-                  result: { ...transactions[0], begin: begin[0], end: end[0] },
-                });
+              res.status(200).json({
+                find: true,
+                result: { ...transactions[0], begin: begin[0], end: end[0] },
+              });
             })
             .catch((error) => {
               res.status(500).json({ error: true, errorMessage: error });

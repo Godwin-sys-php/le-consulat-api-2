@@ -115,6 +115,18 @@ class Transactions extends Base {
       );
     });
   }
+
+  customQuery(query, params) {
+    return new Promise((resolve, reject) => {
+      this.bdd.query(
+        query, params,
+        (error, results, fields) => {
+          if (error) reject(error);
+          resolve(results);
+        }
+      );
+    });
+  }
 }
 
 module.exports = new Transactions();

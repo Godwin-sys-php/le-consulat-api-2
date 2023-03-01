@@ -9,7 +9,7 @@ module.exports = (req, res) => {
   const number = fs.readFileSync(path.join(__dirname, '../Assets/', 'number.txt'), 'utf-8');
   Sessions.findItem({ idSession: req.session.idSession })
     .then(items => {
-      const now = moment.unix(req.session.timestamp + 21600);
+      const now = moment.unix(req.session.timestamp).utcOffset(1);
       const data = {
         data: {
           number: number,

@@ -378,24 +378,34 @@ exports.getDebtSumPerClient = async (req, res) => {
   } catch (error) {
     return res.status(500).json({ error: true });
   }
-}
+};
 
 exports.getDebtsOfOneClient = async (req, res) => {
   try {
     console.log("sdf");
     const sumOfDebt = await MoneyTransactions.customQuery(
-      "SELECT SUM((total-reduction) - amountPaid) as debt FROM sessions WHERE (idMethod = 4 OR (amountPaid < total - reduction)) AND nameOfClient = ?", [req.params.nameOfClient]
+      "SELECT SUM((total-reduction) - amountPaid) as debt FROM sessions WHERE (idMethod = 4 OR (amountPaid < total - reduction)) AND nameOfClient = ?",
+      [req.params.nameOfClient]
     );
     const sessions = await MoneyTransactions.customQuery(
-      "SELECT * FROM sessions WHERE (idMethod = 4 OR (amountPaid < total - reduction)) AND nameOfClient = ?", [req.params.nameOfClient]
+      "SELECT * FROM sessions WHERE (idMethod = 4 OR (amountPaid < total - reduction)) AND nameOfClient = ?",
+      [req.params.nameOfClient]
     );
-    const paymentHistory = await Sessions.customQuery("SELECT amountPaid, timestamp, idSession FROM payedDebt WHERE nameOfClient = ?", [req.params.nameOfClient]);
-    return res.status(200).json({ find: true, sumOfDebt: sumOfDebt[0].debt, sessions: sessions, paymentHistory: paymentHistory, });
+    const paymentHistory = await Sessions.customQuery(
+      "SELECT amountPaid, timestamp, idSession FROM payedDebt WHERE nameOfClient = ?",
+      [req.params.nameOfClient]
+    );
+    return res.status(200).json({
+      find: true,
+      sumOfDebt: sumOfDebt[0].debt,
+      sessions: sessions,
+      paymentHistory: paymentHistory,
+    });
   } catch (error) {
     console.log(error);
     return res.status(500).json({ error: true });
   }
-}
+};
 
 exports.editMoneyOfSession = async (req, res) => {
   const now = moment();
@@ -444,12 +454,18 @@ exports.editMoneyOfSession = async (req, res) => {
         ]
       );
     }
+    const last = await MoneyTransactions.customQuery(
+      "SELECT * FROM methods WHERE idMethod = ?",
+      [req.body.paymentMethod]
+    );
     const result = await MoneyTransactions.insertOne({
       idCategory: 1,
       idMethod: req.body.paymentMethod,
       idUser: req.user.idUser,
       enter: req.body.amountPaid,
       outlet: req.session.amountPaid,
+      amountAfterMethod:
+        last[0].amount - (req.session.amountPaid + req.body.amountPaid),
       amountAfter:
         lastTransaction[0].amountAfter -
         req.session.amountPaid +
@@ -508,21 +524,22 @@ exports.finishAndPay = (req, res, next) => {
       .then(async () => {
         await MoneyTransactions.findLast()
           .then(async (lastTransaction) => {
+            const last = await MoneyTransactions.customQuery(
+              "SELECT * FROM methods WHERE idMethod = ?",
+              [req.body.paymentMethod]
+            );
             await MoneyTransactions.insertOne({
               idCategory: 1,
               idMethod: req.body.paymentMethod,
               idUser: req.user.idUser,
               enter: req.body.amountPaid,
               outlet: 0,
+              amountAfterMethod: last[0].amount + req.body.amountPaid,
               amountAfter: lastTransaction[0].amountAfter + req.body.amountPaid,
               timestamp: now.unix(),
               description: `Paiement facture`,
             })
               .then(async () => {
-                const last = await MoneyTransactions.customQuery(
-                  "SELECT * FROM methods WHERE idMethod = ?",
-                  [req.body.paymentMethod]
-                );
                 await MoneyTransactions.customQuery(
                   "UPDATE methods SET amount = ? WHERE idMethod = ?",
                   [last[0].amount + req.body.amountPaid, req.body.paymentMethod]
@@ -582,21 +599,22 @@ exports.pay = (req, res) => {
       .then(async () => {
         await MoneyTransactions.findLast()
           .then(async (lastTransaction) => {
+            const last = await MoneyTransactions.customQuery(
+              "SELECT * FROM methods WHERE idMethod = ?",
+              [req.body.paymentMethod]
+            );
             await MoneyTransactions.insertOne({
               idCategory: 1,
               idMethod: req.body.paymentMethod,
               idUser: req.user.idUser,
               enter: req.body.amountPaid,
               outlet: 0,
+              amountAfterMethod: last[0].amount + req.body.amountPaid,
               amountAfter: lastTransaction[0].amountAfter + req.body.amountPaid,
               timestamp: now.unix(),
               description: `Paiement facture`,
             })
               .then(async () => {
-                const last = await MoneyTransactions.customQuery(
-                  "SELECT * FROM methods WHERE idMethod = ?",
-                  [req.body.paymentMethod]
-                );
                 await MoneyTransactions.customQuery(
                   "UPDATE methods SET amount = ? WHERE idMethod = ?",
                   [last[0].amount + req.body.amountPaid, req.body.paymentMethod]
@@ -680,8 +698,10 @@ exports.getOneSession = (req, res) => {
         products.push({ ...products2[index], id: products2[index].idProduct });
       }
       if (sessions[0].beenPaid) {
-        paymentHistory = await Sessions.customQuery("SELECT amountPaid, timestamp FROM payedDebt WHERE idSession = ?", [req.params.idSession]);
-
+        paymentHistory = await Sessions.customQuery(
+          "SELECT amountPaid, timestamp FROM payedDebt WHERE idSession = ?",
+          [req.params.idSession]
+        );
       }
       res.status(200).json({
         find: true,
@@ -711,14 +731,17 @@ exports.getItemOfSession = (req, res) => {
 exports.getNotFinished = (req, res) => {
   Sessions.find({ beenPaid: 0 })
     .then(async (sessions) => {
-      const tef = await fetch("https://api.techeatfast.com/commands/restaurant/2/not-done", {
-        method: "GET",
-        headers: {
-          'Authorization': 'Bearer token-special-le-consulat', 
-          'Content-Type': 'application/x-www-form-urlencoded'
+      const tef = await fetch(
+        "https://api.techeatfast.com/commands/restaurant/2/not-done",
+        {
+          method: "GET",
+          headers: {
+            Authorization: "Bearer token-special-le-consulat",
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
         }
-      }).then(res => res.json());
-      res.status(200).json({ find: true, result: sessions, tef: tef.result, });
+      ).then((res) => res.json());
+      res.status(200).json({ find: true, result: sessions, tef: tef.result });
     })
     .catch((error) => {
       console.log(error);
@@ -1005,6 +1028,42 @@ exports.getReport = async (req, res) => {
       "SELECT SUM(amountPaid) as money FROM sessions WHERE timestamp >= ? AND timestamp < ? AND idMethod = 3",
       [Number(req.params.timestamp), Number(req.params.timestamp) + 86400]
     );
+    const categories = await MoneyTransactions.customQuery(
+      "SELECT * FROM  categoriesMoneyTransactions WHERE type = 'outlet'"
+    );
+    let transactionsPerCategories = [];
+    for (let index in categories) {
+      const transactions = await MoneyTransactions.customQuery(
+        "SELECT * FROM moneyTransactions WHERE timestamp >= ? AND timestamp < ? AND idCategory = ?",
+        [
+          Number(req.params.timestamp),
+          Number(req.params.timestamp) + 86400,
+          categories[index].idCategory,
+        ]
+      );
+      const sumOfThatShit = await MoneyTransactions.customQuery(
+        "SELECT SUM(outlet) as sum FROM moneyTransactions WHERE timestamp >= ? AND timestamp < ? AND idCategory = ?",
+        [
+          Number(req.params.timestamp),
+          Number(req.params.timestamp) + 86400,
+          categories[index].idCategory,
+        ]
+      );
+      transactionsPerCategories.push({
+        ...categories[index],
+        sum: sumOfThatShit[0].sum === null ? 0 : sumOfThatShit[0].sum,
+        transactions: transactions,
+      });
+    }
+    const buyedProducts = await Transactions.customQuery(
+      "SELECT * FROM transactions WHERE timestamp >= ? AND timestamp < ? AND description != ? AND description != ? AND outlet = 0",
+      [
+        Number(req.params.timestamp),
+        Number(req.params.timestamp) + 86400,
+        "Modification commande d'un client",
+        "Suppression élément de la commande d'un client",
+      ]
+    );
     const server = await Sessions.findServerOfADay(req.params.timestamp);
 
     console.log(cash[0].money);
@@ -1022,8 +1081,11 @@ exports.getReport = async (req, res) => {
       server: server,
       debt: debt[0].debt + debtPM[0].debt,
       sumPayedDebt: sumPayedDebt[0].payedDebt,
+      transactionsPerCategories: transactionsPerCategories,
+      buyedProducts: buyedProducts,
     });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ error: true, errorMessage: error });
   }
 };
@@ -1091,7 +1153,7 @@ exports.generateVoucherForDrinks = async (req, res) => {
       "SELECT i.nameOfProduct as nameOfProduct, i.quantity-taken as quantity2print, i.price as price from sessionsItem i left join products p on p.idProduct = i.idProduct WHERE i.quantity != taken AND i.idSession = ? AND (p.type = 'Boissons' OR p.type='Cigarettes' OR p.type='Spiritueux')",
       [req.params.idSession]
     );
-    
+
     console.log(items);
     await Sessions.customQuery(
       "UPDATE sessionsItem i left join products p on p.idProduct = i.idProduct SET i.taken = i.quantity WHERE i.idSession = ? AND (p.type = 'Boissons' OR p.type='Cigarettes' OR p.type='Spiritueux')",
@@ -1148,7 +1210,10 @@ exports.generateVoucherForDrinks = async (req, res) => {
                       () => {
                         req.app
                           .get("socketService")
-                          .broadcastEmiter( `${req.protocol}://le-consulat-drc.com/Vouchers/${nameOfFile}`, "print-session");
+                          .broadcastEmiter(
+                            `${req.protocol}://le-consulat-drc.com/Vouchers/${nameOfFile}`,
+                            "print-session"
+                          );
                         res.status(200).json({ update: true });
                       }
                     );
@@ -1176,7 +1241,7 @@ exports.generateVoucherForFoods = async (req, res) => {
       "SELECT i.nameOfProduct as nameOfProduct, i.quantity-taken as quantity2print, i.price as price from sessionsItem i left join products p on p.idProduct = i.idProduct WHERE i.quantity != taken AND i.idSession = ? AND (p.type = 'Plâts')",
       [req.params.idSession]
     );
-    
+
     console.log(items);
     await Sessions.customQuery(
       "UPDATE sessionsItem i left join products p on p.idProduct = i.idProduct SET i.taken = i.quantity WHERE i.idSession = ? AND (p.type='Plâts')",
@@ -1233,7 +1298,10 @@ exports.generateVoucherForFoods = async (req, res) => {
                       () => {
                         req.app
                           .get("socketService")
-                          .broadcastEmiter( `${req.protocol}://le-consulat-drc.com/Vouchers/${nameOfFile}`, "print-session");
+                          .broadcastEmiter(
+                            `${req.protocol}://le-consulat-drc.com/Vouchers/${nameOfFile}`,
+                            "print-session"
+                          );
                         res.status(200).json({ update: true });
                       }
                     );
@@ -1255,24 +1323,28 @@ exports.generateVoucherForFoods = async (req, res) => {
 
 exports.getSessionsPrintWorks = async (req, res) => {
   try {
-    
-    const sessions = await Sessions.customQuery("SELECT * FROM sessions WHERE wasOver = 1 AND timestamp >= ? ORDER BY idSession DESC", [moment().startOf('day').unix()]);
+    const sessions = await Sessions.customQuery(
+      "SELECT * FROM sessions WHERE wasOver = 1 AND timestamp >= ? ORDER BY idSession DESC",
+      [moment().startOf("day").unix()]
+    );
 
     return res.status(200).json({ find: true, sessions: sessions });
   } catch (error) {
     console.log(error);
     return res.status(500).json({ error: true });
   }
-}
+};
 
 exports.getVouchersPrintWorkds = async (req, res) => {
   try {
-    
-    const vouchers = await Sessions.customQuery("SELECT * FROM vouchers WHERE timestamp >= ? ORDER BY idVoucher DESC", [moment().startOf('day').unix()]);
+    const vouchers = await Sessions.customQuery(
+      "SELECT * FROM vouchers WHERE timestamp >= ? ORDER BY idVoucher DESC",
+      [moment().startOf("day").unix()]
+    );
 
     return res.status(200).json({ find: true, vouchers: vouchers });
   } catch (error) {
     console.log(error);
     return res.status(500).json({ error: true });
   }
-}
+};
