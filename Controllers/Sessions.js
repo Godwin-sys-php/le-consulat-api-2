@@ -1148,7 +1148,7 @@ exports.printInvoice = async (req, res) => {
 exports.generateVoucherForDrinks = async (req, res) => {
   try {
     console.log("SCUMMMMMMM");
-    const now = moment();
+    const now = moment().utcOffset(1);
     const items = await Sessions.customQuery(
       "SELECT i.nameOfProduct as nameOfProduct, i.quantity-taken as quantity2print, i.price as price from sessionsItem i left join products p on p.idProduct = i.idProduct WHERE i.quantity != taken AND i.idSession = ? AND (p.type = 'Boissons' OR p.type='Cigarettes' OR p.type='Spiritueux')",
       [req.params.idSession]
@@ -1236,7 +1236,7 @@ exports.generateVoucherForDrinks = async (req, res) => {
 exports.generateVoucherForFoods = async (req, res) => {
   try {
     console.log("SCUMMMMMMM");
-    const now = moment();
+    const now = moment().utcOffset(1);
     const items = await Sessions.customQuery(
       "SELECT i.nameOfProduct as nameOfProduct, i.quantity-taken as quantity2print, i.price as price from sessionsItem i left join products p on p.idProduct = i.idProduct WHERE i.quantity != taken AND i.idSession = ? AND (p.type = 'Plâts')",
       [req.params.idSession]
