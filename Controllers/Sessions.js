@@ -1185,6 +1185,11 @@ exports.generateVoucherForDrinks = async (req, res) => {
           console.log(err);
         } else {
           let options = {
+            childProcessOptions: {
+              env: {
+                OPENSSL_CONF: "/dev/null",
+              },
+            },
             width: "7.5cm",
             localUrlAccess: true,
           };
@@ -1197,7 +1202,7 @@ exports.generateVoucherForDrinks = async (req, res) => {
                 console.log(err);
               } else {
                 Sessions.customQuery("INSERT INTO vouchers SET ?", {
-                  voucherUrl: `${req.protocol}://le-consulat-drc.com/Vouchers/${nameOfFile}`,
+                  voucherUrl: `http://147.182.240.60/Vouchers/${nameOfFile}`,
                   nameOfServer: req.session.nameOfServer,
                   nameOfClient: req.session.nameOfClient,
                   timestamp: now.unix(),
@@ -1211,7 +1216,7 @@ exports.generateVoucherForDrinks = async (req, res) => {
                         req.app
                           .get("socketService")
                           .broadcastEmiter(
-                            `${req.protocol}://le-consulat-drc.com/Vouchers/${nameOfFile}`,
+                            `http://147.182.240.60/Vouchers/${nameOfFile}`,
                             "print-session"
                           );
                         res.status(200).json({ update: true });
@@ -1273,6 +1278,11 @@ exports.generateVoucherForFoods = async (req, res) => {
           console.log(err);
         } else {
           let options = {
+            childProcessOptions: {
+              env: {
+                OPENSSL_CONF: "/dev/null",
+              },
+            },
             width: "7.5cm",
             localUrlAccess: true,
           };
@@ -1285,7 +1295,7 @@ exports.generateVoucherForFoods = async (req, res) => {
                 console.log(err);
               } else {
                 Sessions.customQuery("INSERT INTO vouchers SET ?", {
-                  voucherUrl: `${req.protocol}://le-consulat-drc.com/Vouchers/${nameOfFile}`,
+                  voucherUrl: `http://147.182.240.60/Vouchers/${nameOfFile}`,
                   nameOfServer: req.session.nameOfServer,
                   nameOfClient: req.session.nameOfClient,
                   timestamp: now.unix(),
@@ -1299,7 +1309,7 @@ exports.generateVoucherForFoods = async (req, res) => {
                         req.app
                           .get("socketService")
                           .broadcastEmiter(
-                            `${req.protocol}://le-consulat-drc.com/Vouchers/${nameOfFile}`,
+                            `http://147.182.240.60/Vouchers/${nameOfFile}`,
                             "print-session"
                           );
                         res.status(200).json({ update: true });
