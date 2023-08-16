@@ -1117,6 +1117,20 @@ exports.getReportPeriod = async (req, res) => {
       req.params.begin,
       req.params.end
     );
+    const cash = await MoneyTransactions.customQuery(
+      "SELECT SUM(amountPaid) as money FROM sessions WHERE timestamp >= ? AND timestamp < ? AND idMethod = 1",
+      [Number(req.params.begin), Number(req.params.end)]
+    );
+    const mpesa = await MoneyTransactions.customQuery(
+      "SELECT SUM(amountPaid) as money FROM sessions WHERE timestamp >= ? AND timestamp < ? AND idMethod = 2",
+      [Number(req.params.begin), Number(req.params.end)]
+    );
+    const cb = await MoneyTransactions.customQuery(
+      "SELECT SUM(amountPaid) as money FROM sessions WHERE timestamp >= ? AND timestamp < ? AND idMethod = 3",
+      [Number(req.params.begin), Number(req.params.end)]
+    );
+
+    const server = await Sessions.findServerOfPeriod(req.params.begin, req.params.end);
 
     res.status(200).json({
       find: true,
@@ -1126,6 +1140,10 @@ exports.getReportPeriod = async (req, res) => {
       expenses: expenses[0].expenses,
       allRecipe: allRecipe[0].recipe,
       expensesTransactions: expensesTransactions,
+      cash: cash[0].money,
+      mpesa: mpesa[0].money,
+      server: server,
+      cb: cb[0].money,
     });
   } catch (error) {
     res.status(500).json({ error: true, errorMessage: error });

@@ -224,6 +224,19 @@ findServerOfADay(timestamp) {
     });
   }
 
+  findServerOfPeriod(begin, end) {
+      return new Promise((resolve, reject) => {
+        const query = 'SELECT SUM(total-reduction) as money, nameOfServer as name, COUNT(idSession) as nbrOfSession FROM sessions WHERE timestamp >= ? AND timestamp <= ? GROUP BY nameOfServer'
+        this.bdd.query(
+          query, [Number(begin), Number(end)],
+          (error, results, fields) => {
+            if (error) reject(error);
+            resolve(results);
+          }
+        );
+      });
+    }
+
   findOneWithoutAnID(params, id) {
     return new Promise((resolve, reject) => {
       this.bdd.query(
