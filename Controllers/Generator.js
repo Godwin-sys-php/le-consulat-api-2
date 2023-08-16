@@ -49,12 +49,13 @@ module.exports = (req, res) => {
                 width: "7.5cm",
                 localUrlAccess: true,
               };
-
+              
               const nameOfFile = `Facture_${fs.readFileSync(
                 path.join(__dirname, "../Assets/", "number.txt"),
                 "utf-8"
               )}_${req.session.nameOfClient}.pdf`;
               pdf
+              
                 .create(data, options)
                 .toFile(`Invoices/${nameOfFile}`, (err, data) => {
                   if (err) {
@@ -62,7 +63,7 @@ module.exports = (req, res) => {
                   } else {
                     Sessions.updateOne(
                       {
-                        invoiceUrl: `http://147.182.240.60/Invoices/${nameOfFile}`,
+                        invoiceUrl: `http://le-consulat-drc.com/Invoices/${nameOfFile}`,
                       },
                       req.session.idSession
                     )
