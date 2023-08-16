@@ -116,7 +116,7 @@ class Sessions extends Base {
   findRecipeOfPeriod(begin, end) {
     return new Promise((resolve, reject) => {
       this.bdd.query(
-        'SELECT SUM(amountPaid) AS recipe FROM sessions WHERE timestamp >= ? AND timestamp < ? AND wasOver=1 AND beenPaid=1 AND idMethod != 4', [Number(begin), Number(end) + 86400],
+        'SELECT SUM(amountPaid) AS recipe FROM sessions WHERE timestamp >= ? AND timestamp < ? AND wasOver=1 AND beenPaid=1 AND idMethod != 4', [Number(begin), Number(end)],
         (error, results, fields) => {
           if (error) reject(error);
           resolve(results);
@@ -128,7 +128,7 @@ class Sessions extends Base {
   findSessionsOfDay(timestamp) {
     return new Promise((resolve, reject) => {
       this.bdd.query(
-        'SELECT * FROM sessions WHERE timestamp >= ? AND timestamp < ?', [Number(timestamp), Number(timestamp) + 86400],
+        'SELECT * FROM sessions WHERE timestamp >= ? AND timestamp < ?', [Number(timestamp), Number(timestamp)],
         (error, results, fields) => {
           if (error) reject(error);
           resolve(results);
@@ -140,7 +140,7 @@ class Sessions extends Base {
   findSessionsOfPeriod(begin, end) {
     return new Promise((resolve, reject) => {
       this.bdd.query(
-        'SELECT * FROM sessions WHERE timestamp >= ? AND timestamp < ?', [Number(begin), Number(end) + 86400],
+        'SELECT * FROM sessions WHERE timestamp >= ? AND timestamp < ?', [Number(begin), Number(end)],
         (error, results, fields) => {
           if (error) reject(error);
           resolve(results);
@@ -166,7 +166,7 @@ class Sessions extends Base {
     return new Promise((resolve, reject) => {
       const query = 'SELECT si.idProduct, si.nameOfProduct, si.price, SUM(si.quantity) AS quantity FROM sessionsItem si JOIN sessions s ON s.idSession = si.idSession WHERE s.timestamp >= ? AND s.timestamp < ? GROUP BY si.idProduct'
       this.bdd.query(
-        query, [Number(begin), Number(end) + 86400],
+        query, [Number(begin), Number(end)],
         (error, results, fields) => {
           if (error) reject(error);
           resolve(results);
@@ -215,7 +215,7 @@ findServerOfADay(timestamp) {
     return new Promise((resolve, reject) => {
       const query = 'SELECT SUM(total-reduction) as money, nameOfServer as name, COUNT(idSession) as nbrOfSession FROM sessions WHERE timestamp >= ? AND timestamp <= ? GROUP BY nameOfServer'
       this.bdd.query(
-        query, [Number(timestamp), Number(timestamp) + 86400],
+        query, [Number(timestamp), Number(timestamp)],
         (error, results, fields) => {
           if (error) reject(error);
           resolve(results);
