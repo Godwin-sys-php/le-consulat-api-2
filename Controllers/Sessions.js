@@ -205,25 +205,25 @@ exports.updateItemOfSession = (req, res) => {
   const idProductNew = req.product.idProduct; // Nouveau
 
   if (idProduct == idProductNew) {
-    const toSetTransaction =
-      req.product.type === "Boissons" || req.product.type === "Spiritueux"
-        ? {
-            idClient: req.session.idClient,
-            idUser: req.user.idUser,
-            idProduct: idProduct,
-            nameOfProduct: req.item.nameOfProduct,
-            nameOfUser: req.user.name,
-            stockAfter:
-              req.item.inStock +
-              req.item.barStock +
-              req.item.quantity -
-              req.body.quantity,
-            enter: req.item.quantity,
-            outlet: req.body.quantity,
-            description: "Modification commande d'un client",
-            timestamp: now.unix(),
-          }
-        : {
+    const toSetTransaction = {
+      // req.product.type === "Boissons" || req.product.type === "Spiritueux"
+      //   ? {
+      //       idClient: req.session.idClient,
+      //       idUser: req.user.idUser,
+      //       idProduct: idProduct,
+      //       nameOfProduct: req.item.nameOfProduct,
+      //       nameOfUser: req.user.name,
+      //       stockAfter:
+      //         req.item.inStock +
+      //         req.item.barStock +
+      //         req.item.quantity -
+      //         req.body.quantity,
+      //       enter: req.item.quantity,
+      //       outlet: req.body.quantity,
+      //       description: "Modification commande d'un client",
+      //       timestamp: now.unix(),
+      //     }
+      //   : 
             idClient: req.session.idClient,
             idUser: req.user.idUser,
             idProduct: idProduct,
@@ -236,12 +236,7 @@ exports.updateItemOfSession = (req, res) => {
             description: "Modification commande d'un client",
             timestamp: now.unix(),
           };
-    const toSetProduct =
-      req.product.type === "Boissons" || req.product.type === "Spiritueux"
-        ? {
-            barStock: req.item.barStock + req.item.quantity - req.body.quantity,
-          }
-        : {
+    const toSetProduct ={
             inStock: toSetTransaction.stockAfter,
           };
 
@@ -263,10 +258,7 @@ exports.updateItemOfSession = (req, res) => {
     };
 
     if (
-      ((req.product.type === "Plâts" || req.product.type === "Cigarettes") &&
-        toSetTransaction.stockAfter < 0) ||
-      ((req.product.type === "Boissons" || req.product.type === "Spiritueux") &&
-        req.item.barStock + req.item.quantity - req.body.quantity < 0)
+        toSetTransaction.stockAfter < 0
     ) {
       res.status(400).json({ negativeStock: true });
     } else {
@@ -289,22 +281,7 @@ exports.updateItemOfSession = (req, res) => {
         });
     }
   } else {
-    const toSetTransaction =
-      req.item.type === "Boissons" || req.item.type === "Spiritueux"
-        ? {
-            idClient: req.session.idClient,
-            idUser: req.user.idUser,
-            idProduct: idProduct,
-            nameOfProduct: req.item.nameOfProduct,
-            nameOfUser: req.user.name,
-            stockAfter:
-              req.item.inStock + req.item.barStock + req.item.quantity,
-            enter: req.item.quantity,
-            outlet: 0,
-            description: "Modification commande d'un client",
-            timestamp: now.unix(),
-          }
-        : {
+    const toSetTransaction ={
             idClient: req.session.idClient,
             idUser: req.user.idUser,
             idProduct: idProduct,
@@ -317,31 +294,11 @@ exports.updateItemOfSession = (req, res) => {
             timestamp: now.unix(),
           };
 
-    const toSetProduct =
-      req.item.type === "Boissons" || req.item.type === "Spiritueux"
-        ? {
-            barStock: req.item.barStock + req.item.quantity,
-          }
-        : {
+    const toSetProduct = {
             inStock: req.item.inStock + req.item.quantity,
           };
 
-    const toSetTransaction2 =
-      req.product.type === "Boissons" || req.product.type === "Spiritueux"
-        ? {
-            idClient: req.session.idClient,
-            idUser: req.user.idUser,
-            idProduct: idProductNew,
-            nameOfProduct: req.product.name,
-            nameOfUser: req.user.name,
-            stockAfter:
-              req.product.inStock + req.product.barStock - req.body.quantity,
-            enter: 0,
-            outlet: req.body.quantity,
-            description: "Modification commande d'un client",
-            timestamp: now.unix(),
-          }
-        : {
+    const toSetTransaction2 ={
             idClient: req.session.idClient,
             idUser: req.user.idUser,
             idProduct: idProductNew,
@@ -354,12 +311,7 @@ exports.updateItemOfSession = (req, res) => {
             timestamp: now.unix(),
           };
 
-    const toSetProduct2 =
-      req.product.type === "Boissons" || req.product.type === "Spiritueux"
-        ? {
-            barStock: req.product.barStock - req.body.quantity,
-          }
-        : {
+    const toSetProduct2 = {
             inStock: toSetTransaction2.stockAfter,
           };
 
@@ -381,10 +333,7 @@ exports.updateItemOfSession = (req, res) => {
     };
 
     if (
-      ((req.product.type === "Plâts" || req.product.type === "Cigarettes") &&
-        toSetTransaction2.stockAfter < 0) ||
-      ((req.product.type === "Boissons" || req.product.type === "Spiritueux") &&
-        req.product.barStock - req.body.quantity < 0)
+      toSetTransaction2.stockAfter < 0
     ) {
       res.status(400).json({ negativeStock: true });
     } else {
@@ -1083,10 +1032,7 @@ exports.deleteOneItem = async (req, res) => {
       return res.status(200).json({ delete: true });
     } else {
       const product = await Products.findOne({ idProduct: req.item.idProduct });
-      await Products.updateOne(
-        product[0].type === "Boissons" || product[0].type === "Spiritueux"
-          ? { barStock: product[0].barStock + req.item.quantity }
-          : { inStock: product[0].inStock + req.item.quantity },
+      await Products.updateOne({ inStock: product[0].inStock + req.item.quantity },
         req.item.idProduct
       );
       await Sessions.updateOne(
@@ -1341,7 +1287,7 @@ exports.generateVoucherForDrinks = async (req, res) => {
                 console.log(err);
               } else {
                 Sessions.customQuery("INSERT INTO vouchers SET ?", {
-                  voucherUrl: `http://le-consulat-drc.com/Vouchers/${nameOfFile}`,
+                  voucherUrl: `http://147.182.240.60/Vouchers/${nameOfFile}`,
                   nameOfServer: req.session.nameOfServer,
                   nameOfClient: req.session.nameOfClient,
                   timestamp: now.unix(),
@@ -1355,7 +1301,7 @@ exports.generateVoucherForDrinks = async (req, res) => {
                         req.app
                           .get("socketService")
                           .broadcastEmiter(
-                            `http://le-consulat-drc.com/Vouchers/${nameOfFile}`,
+                            `http://147.182.240.60/Vouchers/${nameOfFile}`,
                             "print-session"
                           );
                         res.status(200).json({ update: true });
@@ -1434,7 +1380,7 @@ exports.generateVoucherForFoods = async (req, res) => {
                 console.log(err);
               } else {
                 Sessions.customQuery("INSERT INTO vouchers SET ?", {
-                  voucherUrl: `http://le-consulat-drc.com/Vouchers/${nameOfFile}`,
+                  voucherUrl: `http://147.182.240.60/Vouchers/${nameOfFile}`,
                   nameOfServer: req.session.nameOfServer,
                   nameOfClient: req.session.nameOfClient,
                   timestamp: now.unix(),
@@ -1448,7 +1394,7 @@ exports.generateVoucherForFoods = async (req, res) => {
                         req.app
                           .get("socketService")
                           .broadcastEmiter(
-                            `http://le-consulat-drc.com/Vouchers/${nameOfFile}`,
+                            `http://147.182.240.60/Vouchers/${nameOfFile}`,
                             "print-session"
                           );
                         res.status(200).json({ update: true });
