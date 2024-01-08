@@ -1,7 +1,7 @@
 UPDATE products SET inStock = 18 where name='33 Export';
 UPDATE products SET inStock = 1 where name='4 Cousins Sweet White';
 UPDATE products SET inStock = 3 where name='Baron Blanc de Blancs';
-UPDATE products SET inStock = 15 where name='BAVARIA';
+UPDATE products SET inStock = 14 where name='BAVARIA';
 UPDATE products SET inStock = 130 where name='BEAUFORT GRAND';
 UPDATE products SET inStock = 75 where name='BEAUFORT PETIT';
 UPDATE products SET inStock = 127 where name='CASTEL';
@@ -35,7 +35,7 @@ UPDATE products SET inStock = 14 where name='SAVANA';
 UPDATE products SET inStock = 13 where name='SODA';
 UPDATE products SET inStock = 24 where name='SPRITE';
 UPDATE products SET inStock = 9 where name='Stella Artois Bouteilles';
-UPDATE products SET inStock = 62 where name='TEMBO BOUTEILLE';
+UPDATE products SET inStock = 61 where name='TEMBO BOUTEILLE';
 UPDATE products SET inStock = 45 where name='TONIC';
 UPDATE products SET inStock = 5 where name='TURBO KING';
 UPDATE products SET inStock = 1 where name="Vin Baron d'arignac Sec";
