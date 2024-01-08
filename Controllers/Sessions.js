@@ -120,46 +120,70 @@ exports.addItemToSession = (req, res) => {
         : req.product.price,
     taken: 0,
   };
-  const toInsert2 = _.isNull(req.session.idClient)
-    ? {
-        idUser: req.notUseToken ? 0 : req.session.idUser,
-        idProduct: req.body.idProduct,
-        nameOfProduct: req.product.name,
-        nameOfUser: req.notUseToken ? "Tech'Eat Fast" : req.user.name,
-        stockAfter: req.product.inStock - req.body.quantity,
-        enter: 0,
-        outlet: req.body.quantity,
-        description: "Commande d'un client",
-        timestamp: now.unix(),
-      }
-    : {
-        idClient: req.session.idClient,
-        idUser: req.notUseToken ? 0 : req.session.idUser,
-        idProduct: req.body.idProduct,
-        nameOfProduct: req.product.name,
-        nameOfUser: req.notUseToken ? "Tech'Eat Fast" : req.user.name,
-        stockAfter: req.product.inStock - req.body.quantity,
-        enter: 0,
-        outlet: req.body.quantity,
-        description: "Commande d'un client",
-        timestamp: now.unix(),
-      };
+  const toInsert2 =
+    req.product.type === "Boissons" || req.product.type === "Spiritueux"
+      ? {
+          idClient: req.session.idClient,
+          idUser: req.notUseToken ? 0 : req.session.idUser,
+          idProduct: req.body.idProduct,
+          nameOfProduct: req.product.name,
+          nameOfUser: req.notUseToken ? "Tech'Eat Fast" : req.user.name,
+          // stockAfter:
+          //   req.product.inStock + req.product.barStock - req.body.quantity,
+          stockAfter: req.product.inStock - req.body.quantity,
+          enter: 0,
+          outlet: req.body.quantity,
+          description: "Commande d'un client",
+          timestamp: now.unix(),
+        }
+      : {
+          idClient: req.session.idClient,
+          idUser: req.notUseToken ? 0 : req.session.idUser,
+          idProduct: req.body.idProduct,
+          nameOfProduct: req.product.name,
+          nameOfUser: req.notUseToken ? "Tech'Eat Fast" : req.user.name,
+          stockAfter: req.product.inStock - req.body.quantity,
+          enter: 0,
+          outlet: req.body.quantity,
+          description: "Commande d'un client",
+          timestamp: now.unix(),
+        };
 
-  if (toInsert2.stockAfter < 0) {
+  if (
+    (req.product.type === "Plâts" || req.product.type === "Cigarettes") &&
+    toInsert2.stockAfter < 0
+    // ((req.product.type === "Boissons" || req.product.type === "Spiritueux") &&
+    //   req.product.barStock - req.body.quantity < 0)
+  ) {
     res.status(400).json({ negativeStock: true });
   } else {
-    const promises = [
-      Sessions.insertItem(toInsert),
-      Transactions.insertOne(toInsert2),
-      Sessions.updateOne(
-        { total: req.session.total + req.body.quantity * toInsert.price },
-        req.params.idSession
-      ),
-      Products.updateOne(
-        { inStock: toInsert2.stockAfter },
-        toInsert2.idProduct
-      ),
-    ];
+    const promises =
+      // req.product.type === "Boissons" || req.product.type === "Spiritueux"
+      //   ? [
+      //       Sessions.insertItem(toInsert),
+      //       Transactions.insertOne(toInsert2),
+      //       Sessions.updateOne(
+      //         { total: req.session.total + req.body.quantity * toInsert.price },
+      //         req.params.idSession
+      //       ),
+      //       Products.updateOne(
+      //         { barStock: req.product.barStock - req.body.quantity },
+      //         toInsert2.idProduct
+      //       ),
+      //     ]
+      //   :
+      [
+        Sessions.insertItem(toInsert),
+        Transactions.insertOne(toInsert2),
+        Sessions.updateOne(
+          { total: req.session.total + req.body.quantity * toInsert.price },
+          req.params.idSession
+        ),
+        Products.updateOne(
+          { inStock: toInsert2.stockAfter },
+          toInsert2.idProduct
+        ),
+      ];
 
     Promise.all(promises)
       .then(() => {
@@ -181,21 +205,45 @@ exports.updateItemOfSession = (req, res) => {
   const idProductNew = req.product.idProduct; // Nouveau
 
   if (idProduct == idProductNew) {
-    const toSetTransaction = {
-      idClient: req.session.idClient,
-      idUser: req.user.idUser,
-      idProduct: idProduct,
-      nameOfProduct: req.item.nameOfProduct,
-      nameOfUser: req.user.name,
-      stockAfter: req.item.inStock + req.item.quantity - req.body.quantity,
-      enter: req.item.quantity,
-      outlet: req.body.quantity,
-      description: "Modification commande d'un client",
-      timestamp: now.unix(),
-    };
-    const toSetProduct = {
-      inStock: toSetTransaction.stockAfter,
-    };
+    const toSetTransaction =
+      req.product.type === "Boissons" || req.product.type === "Spiritueux"
+        ? {
+            idClient: req.session.idClient,
+            idUser: req.user.idUser,
+            idProduct: idProduct,
+            nameOfProduct: req.item.nameOfProduct,
+            nameOfUser: req.user.name,
+            stockAfter:
+              req.item.inStock +
+              req.item.barStock +
+              req.item.quantity -
+              req.body.quantity,
+            enter: req.item.quantity,
+            outlet: req.body.quantity,
+            description: "Modification commande d'un client",
+            timestamp: now.unix(),
+          }
+        : {
+            idClient: req.session.idClient,
+            idUser: req.user.idUser,
+            idProduct: idProduct,
+            nameOfProduct: req.item.nameOfProduct,
+            nameOfUser: req.user.name,
+            stockAfter:
+              req.item.inStock + req.item.quantity - req.body.quantity,
+            enter: req.item.quantity,
+            outlet: req.body.quantity,
+            description: "Modification commande d'un client",
+            timestamp: now.unix(),
+          };
+    const toSetProduct =
+      req.product.type === "Boissons" || req.product.type === "Spiritueux"
+        ? {
+            barStock: req.item.barStock + req.item.quantity - req.body.quantity,
+          }
+        : {
+            inStock: toSetTransaction.stockAfter,
+          };
 
     const toSetItem = {
       idProduct: idProduct,
@@ -214,7 +262,12 @@ exports.updateItemOfSession = (req, res) => {
         toSetItem.price * req.body.quantity,
     };
 
-    if (toSetTransaction.stockAfter < 0) {
+    if (
+      ((req.product.type === "Plâts" || req.product.type === "Cigarettes") &&
+        toSetTransaction.stockAfter < 0) ||
+      ((req.product.type === "Boissons" || req.product.type === "Spiritueux") &&
+        req.item.barStock + req.item.quantity - req.body.quantity < 0)
+    ) {
       res.status(400).json({ negativeStock: true });
     } else {
       const promises = [
@@ -236,37 +289,79 @@ exports.updateItemOfSession = (req, res) => {
         });
     }
   } else {
-    const toSetTransaction = {
-      idClient: req.session.idClient,
-      idUser: req.user.idUser,
-      idProduct: idProduct,
-      nameOfProduct: req.item.nameOfProduct,
-      nameOfUser: req.user.name,
-      stockAfter: req.item.inStock + req.item.quantity,
-      enter: req.item.quantity,
-      outlet: 0,
-      description: "Modification commande d'un client",
-      timestamp: now.unix(),
-    };
-    const toSetProduct = {
-      inStock: toSetTransaction.stockAfter,
-    };
+    const toSetTransaction =
+      req.item.type === "Boissons" || req.item.type === "Spiritueux"
+        ? {
+            idClient: req.session.idClient,
+            idUser: req.user.idUser,
+            idProduct: idProduct,
+            nameOfProduct: req.item.nameOfProduct,
+            nameOfUser: req.user.name,
+            stockAfter:
+              req.item.inStock + req.item.barStock + req.item.quantity,
+            enter: req.item.quantity,
+            outlet: 0,
+            description: "Modification commande d'un client",
+            timestamp: now.unix(),
+          }
+        : {
+            idClient: req.session.idClient,
+            idUser: req.user.idUser,
+            idProduct: idProduct,
+            nameOfProduct: req.item.nameOfProduct,
+            nameOfUser: req.user.name,
+            stockAfter: req.item.inStock + req.item.quantity,
+            enter: req.item.quantity,
+            outlet: 0,
+            description: "Modification commande d'un client",
+            timestamp: now.unix(),
+          };
 
-    const toSetTransaction2 = {
-      idClient: req.session.idClient,
-      idUser: req.user.idUser,
-      idProduct: idProductNew,
-      nameOfProduct: req.product.name,
-      nameOfUser: req.user.name,
-      stockAfter: req.product.inStock - req.body.quantity,
-      enter: 0,
-      outlet: req.body.quantity,
-      description: "Modification commande d'un client",
-      timestamp: now.unix(),
-    };
-    const toSetProduct2 = {
-      inStock: toSetTransaction2.stockAfter,
-    };
+    const toSetProduct =
+      req.item.type === "Boissons" || req.item.type === "Spiritueux"
+        ? {
+            barStock: req.item.barStock + req.item.quantity,
+          }
+        : {
+            inStock: req.item.inStock + req.item.quantity,
+          };
+
+    const toSetTransaction2 =
+      req.product.type === "Boissons" || req.product.type === "Spiritueux"
+        ? {
+            idClient: req.session.idClient,
+            idUser: req.user.idUser,
+            idProduct: idProductNew,
+            nameOfProduct: req.product.name,
+            nameOfUser: req.user.name,
+            stockAfter:
+              req.product.inStock + req.product.barStock - req.body.quantity,
+            enter: 0,
+            outlet: req.body.quantity,
+            description: "Modification commande d'un client",
+            timestamp: now.unix(),
+          }
+        : {
+            idClient: req.session.idClient,
+            idUser: req.user.idUser,
+            idProduct: idProductNew,
+            nameOfProduct: req.product.name,
+            nameOfUser: req.user.name,
+            stockAfter: req.product.inStock - req.body.quantity,
+            enter: 0,
+            outlet: req.body.quantity,
+            description: "Modification commande d'un client",
+            timestamp: now.unix(),
+          };
+
+    const toSetProduct2 =
+      req.product.type === "Boissons" || req.product.type === "Spiritueux"
+        ? {
+            barStock: req.product.barStock - req.body.quantity,
+          }
+        : {
+            inStock: toSetTransaction2.stockAfter,
+          };
 
     const toSetItem = {
       idProduct: idProductNew,
@@ -285,7 +380,12 @@ exports.updateItemOfSession = (req, res) => {
         toSetItem.price * req.body.quantity,
     };
 
-    if (toSetTransaction2.stockAfter < 0) {
+    if (
+      ((req.product.type === "Plâts" || req.product.type === "Cigarettes") &&
+        toSetTransaction2.stockAfter < 0) ||
+      ((req.product.type === "Boissons" || req.product.type === "Spiritueux") &&
+        req.product.barStock - req.body.quantity < 0)
+    ) {
       res.status(400).json({ negativeStock: true });
     } else {
       const promises = [
@@ -372,7 +472,7 @@ exports.addAccompanimentToSessionItem = (req, res) => {
 exports.getDebtSumPerClient = async (req, res) => {
   try {
     const debt = await MoneyTransactions.customQuery(
-      "SELECT SUM((total-reduction) - amountPaid) as debt, nameOfClient FROM sessions WHERE idMethod = 4 OR (amountPaid < total - reduction) GROUP BY nameOfClient"
+      "SELECT debt, name as nameOfClient FROM clients WHERE debt > 0"
     );
     return res.status(200).json({ find: true, result: debt });
   } catch (error) {
@@ -384,21 +484,17 @@ exports.getDebtsOfOneClient = async (req, res) => {
   try {
     console.log("sdf");
     const sumOfDebt = await MoneyTransactions.customQuery(
-      "SELECT SUM((total-reduction) - amountPaid) as debt FROM sessions WHERE (idMethod = 4 OR (amountPaid < total - reduction)) AND nameOfClient = ?",
+      "SELECT debt FROM clients WHERE name = ?",
       [req.params.nameOfClient]
     );
-    const sessions = await MoneyTransactions.customQuery(
-      "SELECT * FROM sessions WHERE (idMethod = 4 OR (amountPaid < total - reduction)) AND nameOfClient = ?",
-      [req.params.nameOfClient]
-    );
+    const client = await Clients.findOne({ name: req.params.nameOfClient, });
     const paymentHistory = await Sessions.customQuery(
-      "SELECT amountPaid, timestamp, idSession FROM payedDebt WHERE nameOfClient = ?",
-      [req.params.nameOfClient]
+      "SELECT * FROM debts WHERE idClient = ?",
+      [client[0].idClient]
     );
     return res.status(200).json({
       find: true,
       sumOfDebt: sumOfDebt[0].debt,
-      sessions: sessions,
       paymentHistory: paymentHistory,
     });
   } catch (error) {
@@ -576,6 +672,34 @@ exports.finish = (req, res, next) => {
     });
 };
 
+exports.toDebt = async (req, res) => {
+  try {
+    if (req.session.idClient !== null && req.session.debt === 0) {
+      const now = moment();
+      await Sessions.updateOne(
+        {
+          beenPaid: 0,
+          debt: 1,
+        },
+        req.params.idSession
+      );
+      const client = await Clients.findOne({ idClient: req.session.idClient, });
+      await Clients.updateOne({ debt: client[0].debt + (req.session.total - req.session.reduction) }, client[0].idClient);
+      await Sessions.customQuery("INSERT INTO debts SET idClient = ?, idSession = ?, enter = ?, timestamp = ?, note='Facture'", [req.session.idClient, req.params.idSession, req.session.total - req.session.reduction, now.unix()]);
+      req.app
+        .get("socketService")
+        .broadcastEmiter(req.params.idSession, "edit-session");
+      return res.status(200).json({ update: true });
+    } else {
+      return res.status(400).json({ cannot: true, });
+    }
+    
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: true, errorMessage: error });
+  }
+};
+
 exports.pay = (req, res) => {
   const now = moment();
   if (
@@ -586,7 +710,7 @@ exports.pay = (req, res) => {
       req.body.paymentMethod == 5 ||
       req.body.paymentMethod == 6) &&
     _.isNumber(req.body.amountPaid) &&
-    req.body.amountPaid <= req.session.total
+    req.body.amountPaid == req.session.total - req.session.reduction
   ) {
     Sessions.updateOne(
       {
@@ -729,19 +853,12 @@ exports.getItemOfSession = (req, res) => {
 };
 
 exports.getNotFinished = (req, res) => {
-  Sessions.find({ beenPaid: 0 })
+  Sessions.customQuery(
+    "SELECT * FROM sessions WHERE beenPaid = 0 AND debt = 0",
+    []
+  )
     .then(async (sessions) => {
-      const tef = await fetch(
-        "https://api.techeatfast.com/commands/restaurant/2/not-done",
-        {
-          method: "GET",
-          headers: {
-            Authorization: "Bearer token-special-le-consulat",
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-        }
-      ).then((res) => res.json());
-      res.status(200).json({ find: true, result: sessions, tef: tef.result });
+      res.status(200).json({ find: true, result: sessions, tef: [] });
     })
     .catch((error) => {
       console.log(error);
@@ -751,7 +868,7 @@ exports.getNotFinished = (req, res) => {
 
 exports.getNotFinishedAsWaiter = (req, res) => {
   Sessions.customQuery(
-    "SELECT * FROM sessions WHERE beenPaid = 0 AND nameOfServer = ?",
+    "SELECT * FROM sessions WHERE beenPaid = 0 AND debot = 0 AND nameOfServer = ?",
     [req.user.pseudo.toUpperCase()]
   )
     .then(async (sessions) => {
@@ -965,10 +1082,11 @@ exports.deleteOneItem = async (req, res) => {
         .broadcastEmiter(req.params.idSession, "edit-session");
       return res.status(200).json({ delete: true });
     } else {
-      await Sessions.deleteAccompAndItem(req.params.idItem);
       const product = await Products.findOne({ idProduct: req.item.idProduct });
       await Products.updateOne(
-        { inStock: product[0].inStock + req.item.quantity },
+        product[0].type === "Boissons" || product[0].type === "Spiritueux"
+          ? { barStock: product[0].barStock + req.item.quantity }
+          : { inStock: product[0].inStock + req.item.quantity },
         req.item.idProduct
       );
       await Sessions.updateOne(
@@ -1009,7 +1127,7 @@ exports.getReport = async (req, res) => {
       [Number(req.params.timestamp), Number(req.params.timestamp) + 86400]
     );
     const debt = await MoneyTransactions.customQuery(
-      "SELECT SUM((total-reduction) - amountPaid) as debt FROM sessions WHERE (amountPaid < total - reduction) AND timestamp >= ? AND timestamp < ? AND idMethod != 4",
+      "SELECT SUM((total-reduction)) as debt FROM sessions WHERE debt=1 timestamp >= ? AND timestamp < ?",
       [Number(req.params.timestamp), Number(req.params.timestamp) + 86400]
     );
     const sumPayedDebt = await MoneyTransactions.customQuery(
@@ -1130,7 +1248,10 @@ exports.getReportPeriod = async (req, res) => {
       [Number(req.params.begin), Number(req.params.end)]
     );
 
-    const server = await Sessions.findServerOfPeriod(req.params.begin, req.params.end);
+    const server = await Sessions.findServerOfPeriod(
+      req.params.begin,
+      req.params.end
+    );
 
     res.status(200).json({
       find: true,

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      h1 {
+        text-align: center;
+        padding-top: 30px;
+      }
+      h2, h3 {
+margin-top: -8px;
+        text-align: center;
+      }
+      hr {
+        background-color: black;
+        border-color: black;
+      }
+      .content {
+        font-size: 25px;
+        margin-right: 30px;
+        margin-left: 30px;
+      }
+      .item {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th {
+        text-align: left;
+      }
+      .item-element {
+        text-align: rileftght;
+      }
+      .item-element-name {
+        text-align: left;
+      }
+      .bref {
+        text-align: right;
+        border-collapse: collapse;
+        width: 70%;
+        border-bottom: dashed 1px black;
+      }
+      .total {
+        width: 100%;
+        float: none;
+      }
+      .align-right {
+        text-align: right;
+      }
+      .address {
+        text-align: center;
+        font-size: 22px;
+      }
+      .info {
+        font-size: 25px;
+      }
+      table {
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Le Consulat</h1>
+    <h2>GROSERY</h2>
+    <h3>POS Invoice</h3>
+    <div class="content">
+      <br />
+      <div class="info">
+        <table>
+          <tr>
+            <td>Bill No: P1-D160C</td>
+            <td style="text-align: right;">Time: 17h28 hrs</td>
+          </tr>
+          <tr>
+            <td>Date: 24-12-2023</td>
+            <td style="text-align: right;">User: POS3</td>
+          </tr>
+        </table>
+      </div>
+      <br />
+      <hr />
+      <table class="item">
+        <tr style="border-bottom: solid 2px black;">
+          <th>DESCRIPTION</th>
+          <th>&nbsp;&nbsp;QTY&nbsp;&nbsp;</th>
+          <th>RATE&nbsp;&nbsp;</th>
+          <th class="align-right">AMOUNT</th>
+        </tr>
+        <% data.item.forEach(item => { %>
+          <tr>
+            <td class="item-element-name"><%= item.nameOfProduct %></td>
+            <td class="item-element"><%= item.quantity %></td>
+            <td class="item-element"><%= item.price %>$</td>
+            <td class="item-element align-right"><%= (item.price * item.quantity).toFixed(2) %>$</td>
+          </tr>
+        <% }); %>
+      </table>
+      <br />
+      <br />
+
+      <br />
+      <table class="bref" align="right">
+        <tr>
+          <td>TOTAL</td>
+          <td><%= data.total %>$</td>
+        </tr>
+        <tr>
+          <td>TVA 16%</td>
+          <td><%= data.reduction %>$</td>
+        </tr>
+      </table>
+      <br /><br /><br />
+      <table class="total">
+        <tr>
+          <td>NET</td>
+          <td class="align-right"><%= data.totalGeneral %>$</td>
+        </tr>
+      </table>
+      <hr />
+      <div>
+        <div>
+          <span style="float: left;">Le Consulat</span>
+        </div>
+      </div>
+      <br />
+      <br />
+      <br />
+      <div class="address">
+        Merci pour votre visite<br />
+        TVA est exclue du pain et farine local<br />
+        TVA incluse dans les prix
+      </div>
+    </div>
+  </body>
+</html>

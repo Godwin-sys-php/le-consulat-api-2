@@ -26,6 +26,7 @@ router.put('/:idSession/item/:idItem/addAccompaniment', limits(8000, 15), existS
 router.put('/:idSession/finishAndPay', limits(8000, 15), existSession, verifyIsNotFinish, auth, sessionCtrl.finishAndPay, generator); // Termine une session, la paie et génére la facture
 router.put('/:idSession/finish', limits(8000, 15), existSession, verifyIsNotFinish, auth, sessionCtrl.finish, generator); // Termine une session et génére la facture
 router.put('/:idSession/pay', limits(8000, 15), existSession, verifyIsFinish, auth, sessionCtrl.pay); // Paye une session si elle est déjà terminer
+router.put('/:idSession/debt', limits(8000, 15), existSession, verifyIsFinish, auth, sessionCtrl.toDebt); // Met en dette une session si elle est déjà terminer
 router.put('/:idSession/editPayment', limits(8000, 15), existSession, verifyIsFinish, auth, sessionCtrl.editMoneyOfSession); // Modifie le moyen de paiement d'une session
 router.put('/:idSession/reduction', limits(8000, 15), existSession, verifyIsNotFinish, auth, sessionCtrl.addReduction); // Rajoute une réduction à une session
 router.put('/:idSession/reductionToZero', limits(8000, 15), existSession, verifyIsNotFinish, auth, sessionCtrl.reductionToZero); // Rajoute une réduction à une session

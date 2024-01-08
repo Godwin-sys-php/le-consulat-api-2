@@ -7,6 +7,7 @@ exports.addOneProduct = (req, res) => {
     type: req.body.type,
     unit: req.body.unit,
     inStock: req.body.inStock,
+    barStock: 0,
   };
 
   Products.insertOne(toInsert)

@@ -1,6 +1,7 @@
 const Transactions = require("../Models/Transactions");
 const moment = require("moment");
 const Products = require("../Models/Products");
+const MoneyTransactions = require("../Models/MoneyTransactions");
 const _ = require("lodash");
 
 exports.addEnter = async (req, res) => {
@@ -30,18 +31,75 @@ exports.addEnter = async (req, res) => {
       idCategory = 12;
     }
 
-    await Transactions.insertOne(toInsert)
-      .then(async () => {
-        await Products.updateOne(
-          { inStock: toInsert.stockAfter },
-          toInsert.idProduct
-        ).then(() => {
-          return res.status(201).json({ create: true });
+    if (req.body.doMoneyTransaction === "yes") {
+      await Transactions.insertOne(toInsert)
+        .then(async () => {
+          const lastTransactionMethod = await MoneyTransactions.customQuery(
+            "SELECT * FROM methods WHERE idMethod = 1"
+          );
+          const lastTransaction = await MoneyTransactions.findLast();
+          if (
+            Number(lastTransactionMethod[0].amount) -
+              Number(req.body.buyPrice) * Number(req.body.quantity) <
+            0
+          ) {
+            return res.status(400).json({ negativeAmount: true });
+          }
+          MoneyTransactions.insertOne({
+            idCategory: idCategory,
+            idMethod: 1,
+            enter: 0,
+            outlet: Number(req.body.buyPrice) * Number(req.body.quantity),
+            amountAfterMethod:
+              Number(lastTransactionMethod[0].amount) -
+              Number(req.body.buyPrice) * Number(req.body.quantity),
+            amountAfter:
+              Number(lastTransaction[0].amountAfter) -
+              Number(req.body.buyPrice) * Number(req.body.quantity),
+            timestamp: now.unix(),
+            description: `Approvisionnement produit ${req.product.name}`,
+          })
+            .then(async () => {
+              await Products.updateOne(
+                { inStock: toInsert.stockAfter },
+                toInsert.idProduct
+              ).then(async () => {
+                const last = await MoneyTransactions.customQuery(
+                  "SELECT amount FROM methods WHERE idMethod = 1",
+                  []
+                );
+                await MoneyTransactions.customQuery(
+                  "UPDATE methods SET amount = ? WHERE idMethod = ?",
+                  [
+                    last[0].amount +
+                      Number(req.body.buyPrice) * Number(req.body.quantity),
+                    1,
+                  ]
+                );
+                res.status(201).json({ create: true });
+              });
+            })
+            .catch((error) => {
+              res.status(500).json({ error: true, errorMessage: error });
+            });
+        })
+        .catch((error) => {
+          res.status(500).json({ error: true, errorMessage: error });
         });
-      })
-      .catch((error) => {
-        res.status(500).json({ error: true, errorMessage: error });
-      });
+    } else {
+      await Transactions.insertOne(toInsert)
+        .then(async () => {
+          await Products.updateOne(
+            { inStock: toInsert.stockAfter },
+            toInsert.idProduct
+          ).then(() => {
+            return res.status(201).json({ create: true });
+          });
+        })
+        .catch((error) => {
+          res.status(500).json({ error: true, errorMessage: error });
+        });
+    }
   } else {
     res.status(400).json({ invalidForm: true });
   }
