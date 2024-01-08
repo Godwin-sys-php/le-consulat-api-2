@@ -868,7 +868,7 @@ exports.getNotFinished = (req, res) => {
 
 exports.getNotFinishedAsWaiter = (req, res) => {
   Sessions.customQuery(
-    "SELECT * FROM sessions WHERE beenPaid = 0 AND debot = 0 AND nameOfServer = ?",
+    "SELECT * FROM sessions WHERE beenPaid = 0 AND debt = 0 AND nameOfServer = ?",
     [req.user.pseudo.toUpperCase()]
   )
     .then(async (sessions) => {
