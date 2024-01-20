@@ -63,7 +63,7 @@ module.exports = (req, res) => {
                   } else {
                     Sessions.updateOne(
                       {
-                        invoiceUrl: `http://147.182.240.60//Invoices/${nameOfFile}`,
+                        invoiceUrl: `http://147.182.240.60/Invoices/${nameOfFile}`,
                       },
                       req.session.idSession
                     )
