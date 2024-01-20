@@ -3,6 +3,7 @@ const moment = require("moment");
 const Products = require("../Models/Products");
 const MoneyTransactions = require("../Models/MoneyTransactions");
 const _ = require("lodash");
+const BarTransactions = require("../Models/BarTransactions");
 
 exports.addEnter = async (req, res) => {
   if (_.isNumber(req.body.buyPrice) && req.body.buyPrice > 0) {
@@ -150,6 +151,16 @@ exports.getAllTransaction = (req, res) => {
     });
 };
 
+exports.getTransactionsPeriod = (req, res) => {
+  Transactions.customQuery("SELECT * FROM transactions WHERE timestamp > ? AND timestamp < ?", [req.params.begin, req.params.end])
+    .then((transaction) => {
+      res.status(200).json({ find: true, result: transaction });
+    })
+    .catch((error) => {
+      res.status(500).json({ error: true, errorMessage: error });
+    });
+};
+
 exports.getOfOneDay = async (req, res) => {
   await Transactions.findOfProductFromOneDay(
     req.params.idProduct,
@@ -224,4 +235,84 @@ exports.getReport = async (req, res) => {
     console.log(err);
     res.status(500).json({ error: true, errorMessage: err });
   }
+};
+
+exports.addEnterBar = async (req, res) => {
+  const now = moment();
+  const toInsert = {
+    idUser: req.user.idUser,
+    idProduct: req.product.idProduct,
+    nameOfProduct: req.product.name,
+    nameOfUser: req.user.name,
+    stockAfter: Number(req.product.barStock) + Number(req.body.quantity),
+    enter: req.body.quantity,
+    outlet: 0,
+    description: req.body.description,
+    timestamp: now.unix(),
+  };
+  if (toInsert.stockAfter < 0) {
+    res.status(400).json({ negativeStock: true });
+  } else {
+    await BarTransactions.insertOne(toInsert)
+      .then(async () => {
+        await Products.updateOne(
+          { barStock: toInsert.stockAfter },
+          toInsert.idProduct
+        )
+          .then(() => {
+            res.status(201).json({ create: true });
+          })
+          .catch((error) => {
+            res.status(500).json({ error: true, errorMessage: error });
+          });
+      })
+      .catch((error) => {
+        res.status(500).json({ error: true, errorMessage: error });
+      });
+  }
+};
+
+exports.addOutletBar = async (req, res) => {
+  const now = moment();
+  const toInsert = {
+    idUser: req.user.idUser,
+    idProduct: req.product.idProduct,
+    nameOfProduct: req.product.name,
+    nameOfUser: req.user.name,
+    stockAfter: Number(req.product.barStock) - Number(req.body.quantity),
+    enter: 0,
+    outlet: req.body.quantity,
+    description: req.body.description,
+    timestamp: now.unix(),
+  };
+  if (toInsert.stockAfter < 0) {
+    res.status(400).json({ negativeStock: true });
+  } else {
+    await BarTransactions.insertOne(toInsert)
+      .then(async () => {
+        await Products.updateOne(
+          { barStock: toInsert.stockAfter },
+          toInsert.idProduct
+        )
+          .then(() => {
+            res.status(201).json({ create: true });
+          })
+          .catch((error) => {
+            res.status(500).json({ error: true, errorMessage: error });
+          });
+      })
+      .catch((error) => {
+        res.status(500).json({ error: true, errorMessage: error });
+      });
+  }
+};
+
+exports.getTransactionsPeriodBar = (req, res) => {
+  BarTransactions.customQuery("SELECT * FROM barTransactions WHERE timestamp > ? AND timestamp < ?", [req.params.begin, req.params.end])
+    .then((transaction) => {
+      res.status(200).json({ find: true, result: transaction });
+    })
+    .catch((error) => {
+      res.status(500).json({ error: true, errorMessage: error });
+    });
 };
